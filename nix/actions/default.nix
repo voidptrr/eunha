@@ -1,4 +1,10 @@
-{inputs, ...}: {
+{inputs, ...}: let
+  paths = [
+    "**/*.nix"
+    "flake.lock"
+    ".github/workflows/checks.yml"
+  ];
+in {
   imports = [
     inputs.actions-nix.flakeModules.default
   ];
@@ -10,14 +16,12 @@
         name = "checks";
 
         on = {
-          pull_request = {};
+          pull_request = {
+            inherit paths;
+          };
           push = {
             branches = ["main"];
-            paths = [
-              "**/*.nix"
-              "flake.lock"
-              ".github/workflows/checks.yml"
-            ];
+            inherit paths;
           };
         };
 
