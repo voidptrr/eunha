@@ -40,6 +40,10 @@ in {
               name = "Run nix flake check";
               run = "nix flake check";
             }
+            {
+              name = "Build package";
+              run = "nix build";
+            }
           ];
         };
       };
