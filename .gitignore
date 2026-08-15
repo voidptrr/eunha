@@ -1,3 +1,5 @@
 .DS_Store
+build/
 result
 .pre-commit-config.yaml
+.cache

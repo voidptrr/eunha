@@ -1,8 +1,13 @@
 {inputs, ...}: let
   paths = [
+    ".clang-format"
+    ".clangd"
     "**/*.nix"
+    "CMakeLists.txt"
+    "CMakePresets.json"
     "flake.lock"
     ".github/workflows/checks.yml"
+    "src/**"
   ];
 in {
   imports = [

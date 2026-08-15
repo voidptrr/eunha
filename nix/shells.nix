@@ -4,9 +4,13 @@
     pkgs,
     ...
   }: {
-    devShells.default = pkgs.mkShellNoCC {
+    devShells.default = (pkgs.mkShell.override {stdenv = pkgs.clangStdenv;}) {
       shellHook = config.pre-commit.installationScript;
-      packages = [];
+      packages = with pkgs; [
+        clang-tools
+        cmake
+        ninja
+      ];
     };
   };
 }
