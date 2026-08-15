@@ -26,6 +26,8 @@
       meta.mainProgram = "eunha";
     };
 
+    checks.package = config.packages.default;
+
     apps.default = {
       type = "app";
       program = config.packages.default;
