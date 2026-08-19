@@ -19,19 +19,9 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-{
-  perSystem = {
-    config,
-    pkgs,
-    ...
-  }: {
-    devShells.default = pkgs.mkShell {
-      shellHook = config.pre-commit.installationScript;
-      packages = with pkgs; [
-        bear
-        clang-tools
-        gnumake
-      ];
-    };
-  };
-}
+
+schema: "4.0"
+duplicates:
+  match_on:
+    - file
+    - output

@@ -20,32 +20,38 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-cmake_minimum_required(VERSION 3.25)
+CC ?= gcc
+BUILD_DIR ?= build
+prefix ?= /usr/local
+bindir ?= $(prefix)/bin
 
-project(eunha
-  VERSION 0.1.0
-  LANGUAGES C
-)
+TARGET := $(BUILD_DIR)/eunha
+SOURCES := src/main.c
+OBJECTS := $(SOURCES:src/%.c=$(BUILD_DIR)/%.o)
 
-add_executable(eunha src/main.c)
+WARNINGS := -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wstrict-prototypes -Wmissing-prototypes -Wcast-align -Wformat=2 -Wundef -Wwrite-strings
+CFLAGS += -std=c17 $(WARNINGS)
 
-target_compile_features(eunha PRIVATE c_std_17)
-target_compile_options(eunha PRIVATE
-  $<$<COMPILE_LANG_AND_ID:C,Clang>:
-    -Wall
-    -Wextra
-    -Wpedantic
-    -Wshadow
-    -Wconversion
-    -Wsign-conversion
-    -Wstrict-prototypes
-    -Wmissing-prototypes
-    -Wcast-align
-    -Wformat=2
-    -Wundef
-    -Wunreachable-code
-    -Wwrite-strings
-  >
-)
+.PHONY: all install clean compile_commands
 
-install(TARGETS eunha)
+all: $(TARGET)
+
+$(TARGET): $(OBJECTS)
+	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) $(LDLIBS)
+
+$(BUILD_DIR)/%.o: src/%.c | $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR):
+	mkdir -p $@
+
+install: $(TARGET)
+	install -Dm755 $(TARGET) $(DESTDIR)$(bindir)/eunha
+
+compile_commands:
+	$(MAKE) clean
+	mkdir -p $(BUILD_DIR)
+	bear --config bear.yaml --output $(BUILD_DIR)/compile_commands.json -- $(MAKE) all
+
+clean:
+	rm -rf $(BUILD_DIR)

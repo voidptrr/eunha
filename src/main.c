@@ -25,6 +25,6 @@
 #include <stdio.h>
 
 int main(void) {
-    printf("Testing");
+    printf("Testing\n");
     return 0;
 }

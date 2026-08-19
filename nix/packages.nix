@@ -28,22 +28,23 @@
     src = pkgs.lib.fileset.toSource {
       root = ../.;
       fileset = pkgs.lib.fileset.unions [
-        ../CMakeLists.txt
         ../LICENSE
+        ../Makefile
         ../src
       ];
     };
   in {
-    packages.default = pkgs.clangStdenv.mkDerivation {
+    packages.default = pkgs.stdenv.mkDerivation {
       pname = "eunha";
       version = "0.1.0";
 
       inherit src;
 
-      nativeBuildInputs = with pkgs; [
-        cmake
-        ninja
-      ];
+      installPhase = ''
+        runHook preInstall
+        make install prefix=$out
+        runHook postInstall
+      '';
 
       meta.mainProgram = "eunha";
     };

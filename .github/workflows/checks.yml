@@ -21,8 +21,8 @@ name: checks
     - .clang-format
     - .clangd
     - '**/*.nix'
-    - CMakeLists.txt
-    - CMakePresets.json
+    - Makefile
+    - bear.yaml
     - flake.lock
     - .github/workflows/checks.yml
     - src/**
@@ -33,8 +33,8 @@ name: checks
     - .clang-format
     - .clangd
     - '**/*.nix'
-    - CMakeLists.txt
-    - CMakePresets.json
+    - Makefile
+    - bear.yaml
     - flake.lock
     - .github/workflows/checks.yml
     - src/**
