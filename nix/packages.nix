@@ -46,7 +46,18 @@
         runHook postInstall
       '';
 
-      meta.mainProgram = "eunha";
+      meta = with pkgs.lib; {
+        homepage = "https://github.com/voidptrr/eunha";
+        license = licenses.mit;
+        mainProgram = "eunha";
+        maintainers = [
+          {
+            name = "Tommaso Bruno";
+            github = "voidptrr";
+          }
+        ];
+        platforms = platforms.linux;
+      };
     };
 
     apps.default = {
