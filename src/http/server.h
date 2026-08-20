@@ -22,35 +22,21 @@
  * SOFTWARE.
  */
 
+#ifndef EUNHA_SERVER_H
+#define EUNHA_SERVER_H
+
+#include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-
-#include "http/server.h"
-
-#define DEFAULT_PORT "8080"
-#define ENV_PORT "EUNHA_PORT"
 
 /*
- * Port validation is left to getaddrinfo so startup has one parsing path.
+ * Called once with all data received before the client closes its write side.
  */
-static const char* load_port(void) {
-    const char* value = getenv(ENV_PORT);
+typedef void (*server_callback)(const uint8_t* data, size_t length);
 
-    if (value == NULL || *value == '\0') {
-        return DEFAULT_PORT;
-    }
+/*
+ * Starts a blocking, single-threaded TCP listener. A connection is considered
+ * complete when the peer closes it or shuts down its write side.
+ */
+int server_listen(const char* service, server_callback cb);
 
-    return value;
-}
-
-static void print_data(const uint8_t* data, size_t length) {
-    fwrite(data, 1, length, stdout);
-    fflush(stdout);
-}
-
-int main(void) {
-    const char* port = load_port();
-
-    return server_listen(port, print_data) == -1 ? 1 : 0;
-}
+#endif

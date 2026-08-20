@@ -22,35 +22,45 @@
  * SOFTWARE.
  */
 
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef EUNHA_VECTOR_H
+#define EUNHA_VECTOR_H
 
-#include "http/server.h"
-
-#define DEFAULT_PORT "8080"
-#define ENV_PORT "EUNHA_PORT"
+#include <stddef.h>
 
 /*
- * Port validation is left to getaddrinfo so startup has one parsing path.
+ * Generic contiguous storage. The vector owns data and stores length/capacity
+ * in elements, not bytes.
  */
-static const char* load_port(void) {
-    const char* value = getenv(ENV_PORT);
+struct vector {
+    void* data;
+    size_t item_size;
+    size_t length;
+    size_t capacity;
+};
 
-    if (value == NULL || *value == '\0') {
-        return DEFAULT_PORT;
-    }
+/*
+ * Initializes vector with storage for elements of item_size bytes.
+ */
+int vector_init(struct vector* vector, size_t item_size);
+size_t vector_len(const struct vector* vector);
 
-    return value;
-}
+/*
+ * Returns a pointer to the element at index. The returned pointer is owned by
+ * the vector and can be invalidated by vector_append or vector_extend.
+ */
+void* vector_get(struct vector* vector, size_t index);
 
-static void print_data(const uint8_t* data, size_t length) {
-    fwrite(data, 1, length, stdout);
-    fflush(stdout);
-}
+/*
+ * Appends one element by copying item_size bytes from item. Pointers returned
+ * by vector_get are invalidated after a growing append.
+ */
+int vector_append(struct vector* vector, const void* item);
 
-int main(void) {
-    const char* port = load_port();
+/*
+ * Appends count elements by copying count * item_size bytes from items.
+ */
+int vector_extend(struct vector* vector, const void* items, size_t count);
 
-    return server_listen(port, print_data) == -1 ? 1 : 0;
-}
+void vector_deinit(struct vector* vector);
+
+#endif

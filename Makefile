@@ -26,11 +26,12 @@ prefix ?= /usr/local
 bindir ?= $(prefix)/bin
 
 TARGET := $(BUILD_DIR)/eunha
-SOURCES := src/main.c
+SOURCES := src/main.c src/http/server.c src/datastruct/vector.c
 OBJECTS := $(SOURCES:src/%.c=$(BUILD_DIR)/%.o)
 
 WARNINGS := -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wstrict-prototypes -Wmissing-prototypes -Wcast-align -Wformat=2 -Wundef -Wwrite-strings
 CFLAGS += -std=c17 $(WARNINGS)
+CPPFLAGS += -Isrc
 
 .PHONY: all install clean compile_commands
 
@@ -39,11 +40,9 @@ all: $(TARGET)
 $(TARGET): $(OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) $(LDLIBS)
 
-$(BUILD_DIR)/%.o: src/%.c | $(BUILD_DIR)
+$(BUILD_DIR)/%.o: src/%.c
+	mkdir -p $(@D)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
-
-$(BUILD_DIR):
-	mkdir -p $@
 
 install: $(TARGET)
 	install -Dm755 $(TARGET) $(DESTDIR)$(bindir)/eunha

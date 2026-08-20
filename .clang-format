@@ -21,6 +21,18 @@
 # SOFTWARE.
 
 BasedOnStyle: LLVM
+AlignAfterOpenBracket: DontAlign
+BinPackArguments: true
+BinPackParameters: BinPack
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^<.*>$'
+    Priority: 1
+  - Regex: '^".*"$'
+    Priority: 2
+IncludeIsMainRegex: 'a^'
 IndentWidth: 4
+PointerAlignment: Left
+SortIncludes: CaseSensitive
 TabWidth: 4
 UseTab: Never
