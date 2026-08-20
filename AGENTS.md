@@ -2,7 +2,8 @@
 
 ## Project Structure
 
-- `src/main.c` contains process startup and environment configuration.
+- `src/main.c` contains process startup.
+- `src/config.c` and `src/config.h` contain defaults and environment configuration.
 - `src/http/` contains networking and HTTP-facing code.
 - `src/datastruct/` contains internal generic data structures.
 - `nix/` contains flake package, shell, hook, and workflow support.

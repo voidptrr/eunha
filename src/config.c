@@ -22,20 +22,24 @@
  * SOFTWARE.
  */
 
-#include <stdint.h>
-#include <stdio.h>
+#include <stdlib.h>
 
 #include "config.h"
-#include "http/server.h"
 
-static void print_data(const uint8_t* data, size_t length) {
-    fwrite(data, 1, length, stdout);
-    fflush(stdout);
+#define CONFIG_DEFAULT_PORT "8080"
+#define CONFIG_ENV_PORT "EUNHA_PORT"
+
+/*
+ * Port validation is left to getaddrinfo so startup has one parsing path.
+ */
+static const char* config_load_port(void) {
+    const char* value = getenv(CONFIG_ENV_PORT);
+
+    if (value == NULL || *value == '\0') {
+        return CONFIG_DEFAULT_PORT;
+    }
+
+    return value;
 }
 
-int main(void) {
-    struct config config;
-
-    load_config(&config);
-    return server_listen(config.port, print_data) == -1 ? 1 : 0;
-}
+void load_config(struct config* config) { config->port = config_load_port(); }

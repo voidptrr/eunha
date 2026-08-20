@@ -26,7 +26,7 @@ prefix ?= /usr/local
 bindir ?= $(prefix)/bin
 
 TARGET := $(BUILD_DIR)/eunha
-SOURCES := src/main.c src/http/server.c src/datastruct/vector.c
+SOURCES := src/main.c src/config.c src/http/server.c src/datastruct/vector.c
 OBJECTS := $(SOURCES:src/%.c=$(BUILD_DIR)/%.o)
 
 WARNINGS := -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wstrict-prototypes -Wmissing-prototypes -Wcast-align -Wformat=2 -Wundef -Wwrite-strings

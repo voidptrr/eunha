@@ -22,20 +22,16 @@
  * SOFTWARE.
  */
 
-#include <stdint.h>
-#include <stdio.h>
+#ifndef EUNHA_CONFIG_H
+#define EUNHA_CONFIG_H
 
-#include "config.h"
-#include "http/server.h"
+struct config {
+    const char* port;
+};
 
-static void print_data(const uint8_t* data, size_t length) {
-    fwrite(data, 1, length, stdout);
-    fflush(stdout);
-}
+/*
+ * Loads defaults and environment overrides.
+ */
+void load_config(struct config* config);
 
-int main(void) {
-    struct config config;
-
-    load_config(&config);
-    return server_listen(config.port, print_data) == -1 ? 1 : 0;
-}
+#endif
