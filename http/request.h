@@ -52,15 +52,6 @@ struct request_buffer {
 };
 
 /*
- * Parsed request-line: method SP request-target SP HTTP-version.
- */
-struct start_line {
-    enum request_method method;
-    struct request_buffer target;
-    struct request_buffer version;
-};
-
-/*
  * One parsed HTTP header field. Name and value point into request.raw.
  */
 struct request_header {
@@ -69,13 +60,15 @@ struct request_header {
 };
 
 /*
- * Owns one HTTP request. raw stores the received octets; start_line, headers,
- * and body point into raw after the parser has found the start-line, header
- * section, empty-line delimiter, and optional body.
+ * Owns one HTTP request. raw stores the received octets; method, target,
+ * version, and body point into raw after message parsing. headers stores
+ * struct request_header items.
  */
 struct request {
     struct vector raw;
-    struct start_line start_line;
+    enum request_method method;
+    struct request_buffer target;
+    struct request_buffer version;
     struct vector headers;
     struct request_buffer body;
 };

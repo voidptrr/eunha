@@ -28,7 +28,7 @@ WARNINGS := -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Ws
 CFLAGS ?= -std=c17 $(WARNINGS)
 CPPFLAGS += -I$(PROJECT_ROOT)
 
-TEST_TARGETS := $(BUILD_DIR)/test_vector $(BUILD_DIR)/test_parser_core $(BUILD_DIR)/test_parser_start_line $(BUILD_DIR)/test_parser_header
+TEST_TARGETS := $(BUILD_DIR)/test_vector $(BUILD_DIR)/test_parser_core $(BUILD_DIR)/test_parser_start_line $(BUILD_DIR)/test_parser_header $(BUILD_DIR)/test_parser_body
 
 .PHONY: test
 
@@ -37,6 +37,7 @@ test: $(TEST_TARGETS)
 	$(BUILD_DIR)/test_parser_core
 	$(BUILD_DIR)/test_parser_start_line
 	$(BUILD_DIR)/test_parser_header
+	$(BUILD_DIR)/test_parser_body
 
 $(BUILD_DIR)/test_vector: test_vector.c $(PROJECT_ROOT)/datastruct/vector.c
 	mkdir -p $(@D)
@@ -51,5 +52,9 @@ $(BUILD_DIR)/test_parser_start_line: http/parser/test_start_line.c $(PROJECT_ROO
 	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@
 
 $(BUILD_DIR)/test_parser_header: http/parser/test_header.c $(PROJECT_ROOT)/http/parser.c
+	mkdir -p $(@D)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@
+
+$(BUILD_DIR)/test_parser_body: http/parser/test_body.c $(PROJECT_ROOT)/http/parser.c
 	mkdir -p $(@D)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@

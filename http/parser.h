@@ -93,4 +93,11 @@ int parser_read_request_line(
  */
 int parser_read_header(struct parser* parser, struct parser_header* header);
 
+/*
+ * Reads the body after the empty line that terminates the header section.
+ * content_length must match the number of remaining body octets.
+ */
+int parser_read_body(
+    struct parser* parser, size_t content_length, struct parser_buffer* body);
+
 #endif

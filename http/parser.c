@@ -251,3 +251,35 @@ int parser_read_header(struct parser* parser, struct parser_header* header) {
     parser->position = (size_t)(line_end - parser->data) + 2;
     return 0;
 }
+
+/*
+ * Reads the body after the empty line that terminates the header section.
+ * content_length must match the number of remaining body octets.
+ */
+int parser_read_body(
+    struct parser* parser, size_t content_length, struct parser_buffer* body) {
+    assert(parser != NULL);
+    assert(body != NULL);
+    assert(parser->position <= parser->length);
+
+    /* The header section ends with an empty CRLF line. */
+    if (parser->position + 1 >= parser->length ||
+        parser->data[parser->position] != CR ||
+        parser->data[parser->position + 1] != LF) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    parser->position += 2;
+
+    /* The received body length must match Content-Length exactly. */
+    if (parser->length - parser->position != content_length) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    body->data = parser->data + parser->position;
+    body->length = content_length;
+    parser->position = parser->length;
+    return 0;
+}
