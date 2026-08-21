@@ -21,43 +21,35 @@
 # SOFTWARE.
 
 CC ?= gcc
-BUILD_DIR ?= build
-prefix ?= /usr/local
-bindir ?= $(prefix)/bin
-RESOLVED_CC := $(shell command -v $(CC) 2>/dev/null || printf '%s' '$(CC)')
-CC_BASENAME := $(notdir $(CC))
-ESCAPED_RESOLVED_CC := $(subst /,\/,$(RESOLVED_CC))
-
-TARGET := $(BUILD_DIR)/eunha
-SOURCES := main.c config.c http/server.c http/parser.c datastruct/vector.c
-OBJECTS := $(SOURCES:%.c=$(BUILD_DIR)/%.o)
+PROJECT_ROOT ?= ..
+BUILD_DIR ?= $(PROJECT_ROOT)/build
 
 WARNINGS := -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wstrict-prototypes -Wmissing-prototypes -Wcast-align -Wformat=2 -Wundef -Wwrite-strings
-CFLAGS += -std=c17 $(WARNINGS)
-CPPFLAGS += -I.
+CFLAGS ?= -std=c17 $(WARNINGS)
+CPPFLAGS += -I$(PROJECT_ROOT)
 
-.PHONY: all install test clean compile_commands
+TEST_TARGETS := $(BUILD_DIR)/test_vector $(BUILD_DIR)/test_parser_core $(BUILD_DIR)/test_parser_start_line $(BUILD_DIR)/test_parser_header
 
-all: $(TARGET)
+.PHONY: test
 
-$(TARGET): $(OBJECTS)
-	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) $(LDLIBS)
+test: $(TEST_TARGETS)
+	$(BUILD_DIR)/test_vector
+	$(BUILD_DIR)/test_parser_core
+	$(BUILD_DIR)/test_parser_start_line
+	$(BUILD_DIR)/test_parser_header
 
-$(BUILD_DIR)/%.o: %.c
+$(BUILD_DIR)/test_vector: test_vector.c $(PROJECT_ROOT)/datastruct/vector.c
 	mkdir -p $(@D)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@
 
-test:
-	$(MAKE) -C tests PROJECT_ROOT=$(CURDIR) BUILD_DIR=$(abspath $(BUILD_DIR)) CC="$(CC)" CFLAGS="$(CFLAGS)"
+$(BUILD_DIR)/test_parser_core: http/parser/test_core.c $(PROJECT_ROOT)/http/parser.c
+	mkdir -p $(@D)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@
 
-install: $(TARGET)
-	install -Dm755 $(TARGET) $(DESTDIR)$(bindir)/eunha
+$(BUILD_DIR)/test_parser_start_line: http/parser/test_start_line.c $(PROJECT_ROOT)/http/parser.c
+	mkdir -p $(@D)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@
 
-compile_commands:
-	$(MAKE) clean
-	mkdir -p $(BUILD_DIR)
-	bear --config bear.yaml --output $(BUILD_DIR)/compile_commands.json -- $(MAKE) CC=$(RESOLVED_CC) all test
-	sed -i 's/"$(CC_BASENAME)"/"$(ESCAPED_RESOLVED_CC)"/' $(BUILD_DIR)/compile_commands.json
-
-clean:
-	rm -rf $(BUILD_DIR)
+$(BUILD_DIR)/test_parser_header: http/parser/test_header.c $(PROJECT_ROOT)/http/parser.c
+	mkdir -p $(@D)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@

@@ -40,35 +40,14 @@ static void init_parser_text(struct parser* parser, const char* text) {
 }
 
 /*
- * Verifies parser_init and parser_peek preserve the current position.
+ * Verifies a parser buffer matches a string literal.
  */
-static int test_parser_init_peek(void) {
-    struct parser parser;
+static void assert_buffer_equals(
+    struct parser_buffer buffer, const char* expected) {
+    size_t expected_length = strlen(expected);
 
-    init_parser_text(&parser, "GET");
-    assert(parser.data != NULL);
-    assert(parser.length == 3);
-    assert(parser.position == 0);
-    assert(parser_peek(&parser) == 'G');
-    assert(parser.position == 0);
-
-    parser_init(&parser, NULL, 0);
-    assert(parser_peek(&parser) == -1);
-    return 0;
-}
-
-/*
- * Verifies parser_skip_whitespace consumes only SP and HTAB.
- */
-static int test_parser_skip_whitespace(void) {
-    struct parser parser;
-
-    init_parser_text(&parser, " \tGET");
-    parser_skip_whitespace(&parser);
-
-    assert(parser.position == 2);
-    assert(parser_peek(&parser) == 'G');
-    return 0;
+    assert(buffer.length == expected_length);
+    assert(memcmp(buffer.data, expected, expected_length) == 0);
 }
 
 /*
@@ -81,10 +60,8 @@ static int test_parser_read_header(void) {
     init_parser_text(&parser, "Content-Length: 123\r\n");
     assert(parser_read_header(&parser, &header) == 0);
 
-    assert(header.name.length == strlen("Content-Length"));
-    assert(memcmp(header.name.data, "Content-Length", header.name.length) == 0);
-    assert(header.value.length == strlen("123"));
-    assert(memcmp(header.value.data, "123", header.value.length) == 0);
+    assert_buffer_equals(header.name, "Content-Length");
+    assert_buffer_equals(header.value, "123");
     assert(parser.position == strlen("Content-Length: 123\r\n"));
     return 0;
 }
@@ -99,10 +76,8 @@ static int test_parser_read_header_skip_value_whitespace(void) {
     init_parser_text(&parser, "Host:\t example.com\r\n");
     assert(parser_read_header(&parser, &header) == 0);
 
-    assert(header.name.length == strlen("Host"));
-    assert(memcmp(header.name.data, "Host", header.name.length) == 0);
-    assert(header.value.length == strlen("example.com"));
-    assert(memcmp(header.value.data, "example.com", header.value.length) == 0);
+    assert_buffer_equals(header.name, "Host");
+    assert_buffer_equals(header.value, "example.com");
     return 0;
 }
 
@@ -116,8 +91,7 @@ static int test_parser_read_header_empty_value(void) {
     init_parser_text(&parser, "X:\r\n");
     assert(parser_read_header(&parser, &header) == 0);
 
-    assert(header.name.length == strlen("X"));
-    assert(memcmp(header.name.data, "X", header.name.length) == 0);
+    assert_buffer_equals(header.name, "X");
     assert(header.value.length == 0);
     assert(parser.position == strlen("X:\r\n"));
     return 0;
@@ -153,11 +127,9 @@ static int test_parser_read_header_errors(void) {
 }
 
 /*
- * Runs parser unit tests.
+ * Runs header parser unit tests.
  */
 int main(void) {
-    assert(test_parser_init_peek() == 0);
-    assert(test_parser_skip_whitespace() == 0);
     assert(test_parser_read_header() == 0);
     assert(test_parser_read_header_skip_value_whitespace() == 0);
     assert(test_parser_read_header_empty_value() == 0);

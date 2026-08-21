@@ -28,7 +28,9 @@
     "bear.yaml"
     "flake.lock"
     ".github/workflows/checks.yml"
-    "src/**"
+    "**/*.c"
+    "**/*.h"
+    "**/Makefile"
   ];
 in {
   imports = [

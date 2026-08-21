@@ -25,7 +25,9 @@ name: checks
     - bear.yaml
     - flake.lock
     - .github/workflows/checks.yml
-    - src/**
+    - '**/*.c'
+    - '**/*.h'
+    - '**/Makefile'
   push:
     branches:
     - main
@@ -37,4 +39,6 @@ name: checks
     - bear.yaml
     - flake.lock
     - .github/workflows/checks.yml
-    - src/**
+    - '**/*.c'
+    - '**/*.h'
+    - '**/Makefile'

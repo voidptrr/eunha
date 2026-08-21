@@ -54,7 +54,7 @@ struct request_buffer {
 /*
  * Parsed request-line: method SP request-target SP HTTP-version.
  */
-struct request_start_line {
+struct start_line {
     enum request_method method;
     struct request_buffer target;
     struct request_buffer version;
@@ -75,7 +75,7 @@ struct request_header {
  */
 struct request {
     struct vector raw;
-    struct request_start_line start_line;
+    struct start_line start_line;
     struct vector headers;
     struct request_buffer body;
 };

@@ -2,11 +2,11 @@
 
 ## Project Structure
 
-- `src/main.c` contains process startup.
-- `src/config.c` and `src/config.h` contain defaults and environment configuration.
-- `src/http/` contains networking and HTTP-facing code.
-- `src/datastruct/` contains internal generic data structures.
-- `tests/` contains in-repo C unit tests.
+- `main.c` contains process startup.
+- `config.c` and `config.h` contain defaults and environment configuration.
+- `http/` contains networking and HTTP-facing code.
+- `datastruct/` contains internal generic data structures.
+- `tests/` contains in-repo C unit tests and its own Makefile.
 - `nix/` contains flake package, shell, hook, and workflow support.
 - `.github/workflows/` contains generated CI workflows.
 - `Makefile` is the primary local build entry point.

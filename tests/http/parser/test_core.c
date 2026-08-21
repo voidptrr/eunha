@@ -22,58 +22,59 @@
  * SOFTWARE.
  */
 
-#ifndef EUNHA_PARSER_H
-#define EUNHA_PARSER_H
-
+#include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
+
+#include "http/parser.h"
 
 /*
- * Tokenizer state for parsing HTTP as octets. data is not owned by the parser;
- * position is the current byte offset into data.
+ * Initializes parser state over a string literal.
  */
-struct parser {
-    const uint8_t* data;
-    size_t length;
-    size_t position;
-};
+static void init_parser_text(struct parser* parser, const char* text) {
+    size_t length = strlen(text);
+
+    parser_init(parser, (const uint8_t*)text, length);
+}
 
 /*
- * Byte slice returned by parser read functions. It points into parser.data and
- * is not null-terminated.
+ * Verifies parser_init and parser_peek preserve the current position.
  */
-struct parser_buffer {
-    const uint8_t* data;
-    size_t length;
-};
+static int test_parser_init_peek(void) {
+    struct parser parser;
+
+    init_parser_text(&parser, "GET");
+    assert(parser.data != NULL);
+    assert(parser.length == 3);
+    assert(parser.position == 0);
+    assert(parser_peek(&parser) == 'G');
+    assert(parser.position == 0);
+
+    parser_init(&parser, NULL, 0);
+    assert(parser_peek(&parser) == -1);
+    return 0;
+}
 
 /*
- * Parsed header line. Name and value point into parser.data.
+ * Verifies parser_skip_whitespace consumes only SP and HTAB.
  */
-struct parser_header {
-    struct parser_buffer name;
-    struct parser_buffer value;
-};
+static int test_parser_skip_whitespace(void) {
+    struct parser parser;
+
+    init_parser_text(&parser, " \tGET");
+    parser_skip_whitespace(&parser);
+
+    assert(parser.position == 2);
+    assert(parser_peek(&parser) == 'G');
+    return 0;
+}
 
 /*
- * Initializes parser to read length octets from data.
+ * Runs core parser unit tests.
  */
-void parser_init(struct parser* parser, const uint8_t* data, size_t length);
-
-/*
- * Returns the next octet without advancing. Returns -1 at end-of-buffer.
- */
-int parser_peek(const struct parser* parser);
-
-/*
- * Advances past HTTP optional whitespace: SP and HTAB.
- */
-void parser_skip_whitespace(struct parser* parser);
-
-/*
- * Reads one header line. Name is [line-start, ':'), value starts after ':' and
- * optional whitespace, and the parser advances past the terminating CRLF.
- */
-int parser_read_header(struct parser* parser, struct parser_header* header);
-
-#endif
+int main(void) {
+    assert(test_parser_init_peek() == 0);
+    assert(test_parser_skip_whitespace() == 0);
+    return 0;
+}
