@@ -164,6 +164,9 @@ static void server_handle_client(int client_fd, server_callback cb) {
     vector_deinit(&request);
 }
 
+/*
+ * Opens the listening socket and handles clients one at a time.
+ */
 int server_listen(const char* service, server_callback cb) {
     int socket_fd = server_open_socket(service);
     if (socket_fd == -1) {

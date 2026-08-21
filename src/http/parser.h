@@ -22,52 +22,58 @@
  * SOFTWARE.
  */
 
-#ifndef EUNHA_VECTOR_H
-#define EUNHA_VECTOR_H
+#ifndef EUNHA_PARSER_H
+#define EUNHA_PARSER_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 /*
- * Generic contiguous storage. The vector owns data and stores length/capacity
- * in elements, not bytes.
+ * Tokenizer state for parsing HTTP as octets. data is not owned by the parser;
+ * position is the current byte offset into data.
  */
-struct vector {
-    void* data;
-    size_t item_size;
+struct parser {
+    const uint8_t* data;
     size_t length;
-    size_t capacity;
+    size_t position;
 };
 
 /*
- * Initializes vector with storage for elements of item_size bytes.
+ * Byte slice returned by parser read functions. It points into parser.data and
+ * is not null-terminated.
  */
-int vector_init(struct vector* vector, size_t item_size);
+struct parser_buffer {
+    const uint8_t* data;
+    size_t length;
+};
 
 /*
- * Returns the number of elements stored in vector.
+ * Parsed header line. Name and value point into parser.data.
  */
-size_t vector_len(const struct vector* vector);
+struct parser_header {
+    struct parser_buffer name;
+    struct parser_buffer value;
+};
 
 /*
- * Returns a pointer to the element at index. The returned pointer is owned by
- * the vector and can be invalidated by vector_append or vector_extend.
+ * Initializes parser to read length octets from data.
  */
-void* vector_get(struct vector* vector, size_t index);
+void parser_init(struct parser* parser, const uint8_t* data, size_t length);
 
 /*
- * Appends one element by copying item_size bytes from item. Pointers returned
- * by vector_get are invalidated after a growing append.
+ * Returns the next octet without advancing. Returns -1 at end-of-buffer.
  */
-int vector_append(struct vector* vector, const void* item);
+int parser_peek(const struct parser* parser);
 
 /*
- * Appends count elements by copying count * item_size bytes from items.
+ * Advances past HTTP optional whitespace: SP and HTAB.
  */
-int vector_extend(struct vector* vector, const void* items, size_t count);
+void parser_skip_whitespace(struct parser* parser);
 
 /*
- * Releases vector storage and resets the struct to an empty state.
+ * Reads one header line. Name is [line-start, ':'), value starts after ':' and
+ * optional whitespace, and the parser advances past the terminating CRLF.
  */
-void vector_deinit(struct vector* vector);
+int parser_read_header(struct parser* parser, struct parser_header* header);
 
 #endif

@@ -24,16 +24,20 @@ CC ?= gcc
 BUILD_DIR ?= build
 prefix ?= /usr/local
 bindir ?= $(prefix)/bin
+RESOLVED_CC := $(shell command -v $(CC) 2>/dev/null || printf '%s' '$(CC)')
+CC_BASENAME := $(notdir $(CC))
+ESCAPED_RESOLVED_CC := $(subst /,\/,$(RESOLVED_CC))
 
 TARGET := $(BUILD_DIR)/eunha
-SOURCES := src/main.c src/config.c src/http/server.c src/datastruct/vector.c
+SOURCES := src/main.c src/config.c src/http/server.c src/http/parser.c src/datastruct/vector.c
 OBJECTS := $(SOURCES:src/%.c=$(BUILD_DIR)/%.o)
+TEST_TARGETS := $(BUILD_DIR)/test_vector $(BUILD_DIR)/test_parser
 
 WARNINGS := -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wstrict-prototypes -Wmissing-prototypes -Wcast-align -Wformat=2 -Wundef -Wwrite-strings
 CFLAGS += -std=c17 $(WARNINGS)
 CPPFLAGS += -Isrc
 
-.PHONY: all install clean compile_commands
+.PHONY: all install test clean compile_commands
 
 all: $(TARGET)
 
@@ -44,13 +48,26 @@ $(BUILD_DIR)/%.o: src/%.c
 	mkdir -p $(@D)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
+test: $(TEST_TARGETS)
+	$(BUILD_DIR)/test_vector
+	$(BUILD_DIR)/test_parser
+
+$(BUILD_DIR)/test_vector: tests/test_vector.c src/datastruct/vector.c
+	mkdir -p $(@D)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@
+
+$(BUILD_DIR)/test_parser: tests/test_parser.c src/http/parser.c
+	mkdir -p $(@D)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@
+
 install: $(TARGET)
 	install -Dm755 $(TARGET) $(DESTDIR)$(bindir)/eunha
 
 compile_commands:
 	$(MAKE) clean
 	mkdir -p $(BUILD_DIR)
-	bear --config bear.yaml --output $(BUILD_DIR)/compile_commands.json -- $(MAKE) all
+	bear --config bear.yaml --output $(BUILD_DIR)/compile_commands.json -- $(MAKE) CC=$(RESOLVED_CC) all test
+	sed -i 's/"$(CC_BASENAME)"/"$(ESCAPED_RESOLVED_CC)"/' $(BUILD_DIR)/compile_commands.json
 
 clean:
 	rm -rf $(BUILD_DIR)

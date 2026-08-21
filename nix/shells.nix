@@ -24,9 +24,18 @@
     config,
     pkgs,
     ...
-  }: {
+  }: let
+    clangd = pkgs.writeShellScriptBin "clangd" ''
+      exec ${pkgs.clang-tools}/bin/clangd \
+        --query-driver="${pkgs.stdenv.cc}/bin/gcc,/nix/store/*/bin/gcc,/usr/bin/gcc" \
+        "$@"
+    '';
+  in {
     devShells.default = pkgs.mkShell {
-      shellHook = config.pre-commit.installationScript;
+      shellHook = ''
+        ${config.pre-commit.installationScript}
+        export PATH="${clangd}/bin:$PATH"
+      '';
       packages = with pkgs; [
         bear
         clang-tools

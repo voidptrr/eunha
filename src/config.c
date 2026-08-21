@@ -42,4 +42,7 @@ static const char* config_load_port(void) {
     return value;
 }
 
+/*
+ * Loads every runtime setting into config.
+ */
 void load_config(struct config* config) { config->port = config_load_port(); }

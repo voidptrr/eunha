@@ -28,11 +28,17 @@
 #include "config.h"
 #include "http/server.h"
 
+/*
+ * Temporary request handler used while the HTTP layer is still being built.
+ */
 static void print_data(const uint8_t* data, size_t length) {
     fwrite(data, 1, length, stdout);
     fflush(stdout);
 }
 
+/*
+ * Loads configuration and starts the blocking server loop.
+ */
 int main(void) {
     struct config config;
 

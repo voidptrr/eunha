@@ -76,6 +76,9 @@ static void vector_reset(struct vector* vector) {
     vector->capacity = 0;
 }
 
+/*
+ * Allocates the initial backing storage for elements of item_size bytes.
+ */
 int vector_init(struct vector* vector, size_t item_size) {
     assert(vector != NULL);
     assert(item_size != 0);
@@ -97,12 +100,18 @@ int vector_init(struct vector* vector, size_t item_size) {
     return 0;
 }
 
+/*
+ * Returns the current number of initialized elements.
+ */
 size_t vector_len(const struct vector* vector) {
     assert(vector != NULL);
 
     return vector->length;
 }
 
+/*
+ * Returns a mutable pointer to one element inside the backing storage.
+ */
 void* vector_get(struct vector* vector, size_t index) {
     assert(vector != NULL);
     assert(index < vector->length);
@@ -110,6 +119,9 @@ void* vector_get(struct vector* vector, size_t index) {
     return (uint8_t*)vector->data + (index * vector->item_size);
 }
 
+/*
+ * Appends a single element by reusing the bulk append path.
+ */
 int vector_append(struct vector* vector, const void* item) {
     assert(vector != NULL);
     assert(vector->item_size != 0);
@@ -118,6 +130,9 @@ int vector_append(struct vector* vector, const void* item) {
     return vector_extend(vector, item, 1);
 }
 
+/*
+ * Appends count contiguous elements, growing storage before copying.
+ */
 int vector_extend(struct vector* vector, const void* items, size_t count) {
     assert(vector != NULL);
     assert(vector->item_size != 0);
@@ -148,6 +163,9 @@ int vector_extend(struct vector* vector, const void* items, size_t count) {
     return 0;
 }
 
+/*
+ * Frees vector-owned storage and clears the fields.
+ */
 void vector_deinit(struct vector* vector) {
     assert(vector != NULL);
 
