@@ -22,25 +22,19 @@
  * SOFTWARE.
  */
 
-#include <stdio.h>
+#ifndef EUNHA_SERVER_H
+#define EUNHA_SERVER_H
 
-#include "config.h"
-#include "http/request.h"
-#include "http/server.h"
-
-/*
- * Temporary request handler used while the HTTP layer is still being built.
- */
-static void print_request(const struct request* request) {
-    fwrite(request->body.data, 1, request->body.length, stdout);
-    fflush(stdout);
-}
+struct request;
 
 /*
- * Loads configuration and starts the blocking server loop.
+ * Called once after one complete HTTP request has been parsed.
  */
-int main(void) {
-    struct config config = load_config();
+typedef void (*server_callback)(const struct request* request);
 
-    return server_listen(config.port, print_request) == -1 ? 1 : 0;
-}
+/*
+ * Starts the blocking, single-threaded HTTP listener.
+ */
+int server_listen(const char* service, server_callback cb);
+
+#endif

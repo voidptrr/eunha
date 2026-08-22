@@ -32,6 +32,6 @@ struct config {
 /*
  * Loads defaults and environment overrides.
  */
-void load_config(struct config* config);
+struct config load_config(void);
 
 #endif

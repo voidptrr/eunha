@@ -22,52 +22,50 @@
  * SOFTWARE.
  */
 
-#ifndef EUNHA_VECTOR_H
-#define EUNHA_VECTOR_H
+#ifndef EUNHA_PARSER_H
+#define EUNHA_PARSER_H
 
 #include <stddef.h>
+#include <stdint.h>
+
+#include "utils.h"
 
 /*
- * Generic contiguous storage. The vector owns data and stores length/capacity
- * in elements, not bytes.
+ * Current section of an HTTP request being parsed.
  */
-struct vector {
-    void* data;
-    size_t item_size;
-    size_t length;
-    size_t capacity;
+enum parser_state {
+    PARSER_START_LINE,
+    PARSER_HEADERS,
+    PARSER_BODY,
+    PARSER_COMPLETE,
+    PARSER_INVALID,
 };
 
 /*
- * Initializes vector with storage for elements of item_size bytes.
+ * Stateful cursor that resumes parsing as more request bytes arrive.
  */
-int vector_init(struct vector* vector, size_t item_size);
+struct parser {
+    enum parser_state state;
+    size_t position;
+    size_t scan_position;
+    size_t header_length;
+};
 
 /*
- * Returns the number of elements stored in vector.
+ * Initializes a parser at the beginning of a request.
  */
-size_t vector_len(const struct vector* vector);
+struct parser parser_init(void);
 
 /*
- * Returns a pointer to the element at index. The returned pointer is owned by
- * the vector and can be invalidated by vector_append or vector_extend.
+ * Adjusts parser offsets after the caller removes consumed leading bytes.
  */
-void* vector_get(struct vector* vector, size_t index);
+void parser_discard(struct parser* parser, size_t length);
 
 /*
- * Appends one element by copying item_size bytes from item. Pointers returned
- * by vector_get are invalidated after a growing append.
+ * Reads and consumes one CRLF-terminated line. Returns an empty pointer and
+ * EAGAIN when more bytes are needed, or EINVAL for malformed line endings.
  */
-int vector_append(struct vector* vector, const void* item);
-
-/*
- * Appends count elements by copying count * item_size bytes from items.
- */
-int vector_extend(struct vector* vector, const void* items, size_t count);
-
-/*
- * Releases vector storage and resets the struct to an empty state.
- */
-void vector_deinit(struct vector* vector);
+struct buffer parser_read_line(
+    struct parser* parser, const uint8_t* data, size_t length);
 
 #endif

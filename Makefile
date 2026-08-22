@@ -29,12 +29,13 @@ CC_BASENAME := $(notdir $(CC))
 ESCAPED_RESOLVED_CC := $(subst /,\/,$(RESOLVED_CC))
 
 TARGET := $(BUILD_DIR)/eunha
-SOURCES := main.c config.c http/server.c http/parser.c datastruct/vector.c
+SOURCES := main.c config.c utils.c http/server.c http/parser.c http/header.c http/request.c datastruct/string.c datastruct/vector.c
 OBJECTS := $(SOURCES:%.c=$(BUILD_DIR)/%.o)
+DEPENDENCIES := $(OBJECTS:.o=.d)
 
 WARNINGS := -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wstrict-prototypes -Wmissing-prototypes -Wcast-align -Wformat=2 -Wundef -Wwrite-strings
 CFLAGS += -std=c17 $(WARNINGS)
-CPPFLAGS += -I.
+CPPFLAGS += -Iinclude
 
 .PHONY: all install test clean compile_commands
 
@@ -45,7 +46,9 @@ $(TARGET): $(OBJECTS)
 
 $(BUILD_DIR)/%.o: %.c
 	mkdir -p $(@D)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+	$(CC) $(CPPFLAGS) $(CFLAGS) -MMD -MP -c $< -o $@
+
+-include $(DEPENDENCIES)
 
 test:
 	$(MAKE) -C tests PROJECT_ROOT=$(CURDIR) BUILD_DIR=$(abspath $(BUILD_DIR)) CC="$(CC)" CFLAGS="$(CFLAGS)"

@@ -28,7 +28,15 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "datastruct/vector.h"
+#include "datastruct/string.h"
+#include "http/header.h"
+
+struct parser;
+
+#define REQUEST_MAX_START_LINE_LENGTH 8192
+#define REQUEST_MAX_HEADER_LINE_LENGTH 8192
+#define REQUEST_MAX_HEADERS_LENGTH 32768
+#define REQUEST_MAX_BODY_LENGTH 1048576
 
 /*
  * HTTP methods recognized by the parser.
@@ -43,46 +51,46 @@ enum request_method {
 };
 
 /*
- * Byte slice into request-owned storage. It is not null-terminated and must be
- * interpreted as octets during message parsing.
+ * HTTP versions accepted by request parsing.
  */
-struct request_buffer {
-    const uint8_t* data;
-    size_t length;
+enum request_version {
+    HTTP_VERSION_UNKNOWN,
+    HTTP_1_0,
+    HTTP_1_1,
 };
 
 /*
- * One parsed HTTP header field. Name and value point into request.raw.
+ * Result of advancing a request parser over currently available bytes.
  */
-struct request_header {
-    struct request_buffer name;
-    struct request_buffer value;
+enum request_parse_status {
+    REQUEST_INVALID,
+    REQUEST_INCOMPLETE,
+    REQUEST_COMPLETE,
 };
 
 /*
- * Owns one HTTP request. raw stores the received octets; method, target,
- * version, and body point into raw after message parsing. headers stores
- * struct request_header items.
+ * Owns one parsed HTTP request. Textual fields are copied only after their
+ * complete octet sequences have arrived.
  */
 struct request {
-    struct vector raw;
     enum request_method method;
-    struct request_buffer target;
-    struct request_buffer version;
-    struct vector headers;
-    struct request_buffer body;
+    struct string target;
+    enum request_version version;
+    struct headers headers;
+    struct string body;
 };
 
 /*
- * Initializes request-owned storage.
+ * Initializes storage owned by a request.
  */
 int request_init(struct request* request);
 
 /*
- * Parses a received byte chunk into request state. For now this stores raw
- * bytes until HTTP framing is implemented.
+ * Advances parsing from parser.position using all bytes currently available.
+ * Request fields retain parsed data when more bytes are still needed.
  */
-int request_parse(struct request* request, const uint8_t* data, size_t length);
+enum request_parse_status request_parse(struct parser* parser,
+    struct request* request, const uint8_t* data, size_t length);
 
 /*
  * Releases request-owned storage.

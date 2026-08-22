@@ -22,25 +22,45 @@
  * SOFTWARE.
  */
 
-#include <stdio.h>
+#ifndef EUNHA_STRING_H
+#define EUNHA_STRING_H
 
-#include "config.h"
-#include "http/request.h"
-#include "http/server.h"
-
-/*
- * Temporary request handler used while the HTTP layer is still being built.
- */
-static void print_request(const struct request* request) {
-    fwrite(request->body.data, 1, request->body.length, stdout);
-    fflush(stdout);
-}
+#include <stddef.h>
+#include <stdint.h>
 
 /*
- * Loads configuration and starts the blocking server loop.
+ * Owned byte string. data is always NUL-terminated for convenience, but length
+ * is authoritative and data may contain non-text bytes before the terminator.
  */
-int main(void) {
-    struct config config = load_config();
+struct string {
+    uint8_t* data;
+    size_t length;
+    size_t capacity;
+};
 
-    return server_listen(config.port, print_request) == -1 ? 1 : 0;
-}
+/*
+ * Initializes an empty string with owned storage.
+ */
+int string_init(struct string* string);
+
+/*
+ * Removes current contents without releasing storage.
+ */
+void string_clear(struct string* string);
+
+/*
+ * Replaces current contents with length bytes copied from data.
+ */
+int string_set(struct string* string, const uint8_t* data, size_t length);
+
+/*
+ * Appends length bytes copied from data.
+ */
+int string_append(struct string* string, const uint8_t* data, size_t length);
+
+/*
+ * Releases owned storage and resets fields.
+ */
+void string_deinit(struct string* string);
+
+#endif

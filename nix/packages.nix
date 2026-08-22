@@ -31,10 +31,11 @@
         ../LICENSE
         ../Makefile
         ../config.c
-        ../config.h
         ../datastruct
         ../http
+        ../include
         ../main.c
+        ../utils.c
       ];
     };
   in {

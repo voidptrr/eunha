@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "vector.h"
+#include "datastruct/vector.h"
 
 #define VECTOR_DEFAULT_CAPACITY 8
 

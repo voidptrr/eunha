@@ -23,6 +23,7 @@
  */
 
 #include <assert.h>
+#include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -30,51 +31,109 @@
 #include "http/parser.h"
 
 /*
- * Initializes parser state over a string literal.
+ * Verifies parser initialization starts at the request line.
  */
-static void init_parser_text(struct parser* parser, const char* text) {
-    size_t length = strlen(text);
+static int test_parser_init(void) {
+    struct parser parser = parser_init();
 
-    parser_init(parser, (const uint8_t*)text, length);
-}
-
-/*
- * Verifies parser_init and parser_peek preserve the current position.
- */
-static int test_parser_init_peek(void) {
-    struct parser parser;
-
-    init_parser_text(&parser, "GET");
-    assert(parser.data != NULL);
-    assert(parser.length == 3);
+    assert(parser.state == PARSER_START_LINE);
     assert(parser.position == 0);
-    assert(parser_peek(&parser) == 'G');
-    assert(parser.position == 0);
-
-    parser_init(&parser, NULL, 0);
-    assert(parser_peek(&parser) == -1);
+    assert(parser.scan_position == 0);
+    assert(parser.header_length == 0);
     return 0;
 }
 
 /*
- * Verifies parser_skip_whitespace consumes only SP and HTAB.
+ * Verifies line reads consume normal and empty CRLF-delimited lines.
  */
-static int test_parser_skip_whitespace(void) {
-    struct parser parser;
+static int test_parser_read_line(void) {
+    const char* data = "Host: example.test\r\n\r\nbody";
+    struct parser parser = parser_init();
 
-    init_parser_text(&parser, " \tGET");
-    parser_skip_whitespace(&parser);
+    struct buffer line =
+        parser_read_line(&parser, (const uint8_t*)data, strlen(data));
+    assert(line.length == strlen("Host: example.test"));
+    assert(memcmp(line.data, "Host: example.test", line.length) == 0);
 
-    assert(parser.position == 2);
-    assert(parser_peek(&parser) == 'G');
+    line = parser_read_line(&parser, (const uint8_t*)data, strlen(data));
+    assert(line.data != NULL);
+    assert(line.length == 0);
+    assert(parser.position == strlen("Host: example.test\r\n\r\n"));
     return 0;
 }
 
 /*
- * Runs core parser unit tests.
+ * Verifies an incomplete line leaves the cursor ready to resume.
+ */
+static int test_parser_read_line_incomplete(void) {
+    const char* data = "Host: example.test\r\n";
+    struct parser parser = parser_init();
+
+    errno = 0;
+    struct buffer line = parser_read_line(
+        &parser, (const uint8_t*)data, strlen("Host: example.test\r"));
+    assert(line.data == NULL);
+    assert(errno == EAGAIN);
+    assert(parser.position == 0);
+    assert(parser.scan_position == strlen("Host: example.test"));
+
+    line = parser_read_line(&parser, (const uint8_t*)data, strlen(data));
+    assert(line.data != NULL);
+    assert(line.length == strlen("Host: example.test"));
+    return 0;
+}
+
+/*
+ * Verifies scanned and consumed offsets survive receive-buffer compaction.
+ */
+static int test_parser_discard(void) {
+    const char* data = "Host: example.test\r\nPartial";
+    struct parser parser = parser_init();
+
+    struct buffer line =
+        parser_read_line(&parser, (const uint8_t*)data, strlen(data));
+    assert(line.data != NULL);
+
+    line = parser_read_line(&parser, (const uint8_t*)data, strlen(data));
+    assert(line.data == NULL);
+    assert(errno == EAGAIN);
+    assert(parser.scan_position == strlen(data));
+
+    size_t consumed = parser.position;
+    parser_discard(&parser, consumed);
+    assert(parser.position == 0);
+    assert(parser.scan_position == strlen("Partial"));
+    return 0;
+}
+
+/*
+ * Verifies bare CR and LF line endings are rejected.
+ */
+static int test_parser_read_line_errors(void) {
+    struct parser parser = parser_init();
+    errno = 0;
+    struct buffer line = parser_read_line(
+        &parser, (const uint8_t*)"Host: value\n", strlen("Host: value\n"));
+    assert(line.data == NULL);
+    assert(errno == EINVAL);
+
+    parser = parser_init();
+    errno = 0;
+    line = parser_read_line(
+        &parser, (const uint8_t*)"Host: value\rX", strlen("Host: value\rX"));
+    assert(line.data == NULL);
+    assert(errno == EINVAL);
+    return 0;
+}
+
+/*
+ * Runs parser cursor tests.
  */
 int main(void) {
-    assert(test_parser_init_peek() == 0);
-    assert(test_parser_skip_whitespace() == 0);
+    assert(test_parser_init() == 0);
+    assert(test_parser_read_line() == 0);
+    assert(test_parser_read_line_incomplete() == 0);
+    assert(test_parser_discard() == 0);
+    assert(test_parser_read_line_errors() == 0);
     return 0;
 }

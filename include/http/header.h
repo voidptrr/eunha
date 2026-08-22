@@ -22,21 +22,59 @@
  * SOFTWARE.
  */
 
-#ifndef EUNHA_SERVER_H
-#define EUNHA_SERVER_H
+#ifndef EUNHA_HEADER_H
+#define EUNHA_HEADER_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-/*
- * Called once with all data received before the client closes its write side.
- */
-typedef void (*server_callback)(const uint8_t* data, size_t length);
+#include "datastruct/string.h"
 
 /*
- * Starts a blocking, single-threaded TCP listener. A connection is considered
- * complete when the peer closes it or shuts down its write side.
+ * Content-Type media types this server handles directly.
  */
-int server_listen(const char* service, server_callback cb);
+enum content_type {
+    CONTENT_TYPE_NONE,
+    CONTENT_TYPE_CUSTOM,
+    CONTENT_TYPE_APPLICATION_FORM_URLENCODED,
+    CONTENT_TYPE_APPLICATION_JSON,
+    CONTENT_TYPE_TEXT_PLAIN,
+};
+
+/*
+ * Known request headers promoted into direct fields.
+ */
+struct headers {
+    struct string host;
+    struct string authorization;
+    enum content_type content_type;
+    size_t content_length;
+    bool has_host;
+    bool has_authorization;
+    bool has_content_type;
+    bool has_content_length;
+};
+
+/*
+ * Initializes storage owned by the header collection.
+ */
+int headers_init(struct headers* headers);
+
+/*
+ * Clears parsed header values while keeping allocations reusable.
+ */
+void headers_clear(struct headers* headers);
+
+/*
+ * Parses one header line without its trailing CRLF.
+ */
+int headers_parse_line(
+    struct headers* headers, const uint8_t* data, size_t length);
+
+/*
+ * Releases header-owned storage.
+ */
+void headers_deinit(struct headers* headers);
 
 #endif

@@ -3,9 +3,11 @@
 ## Project Structure
 
 - `main.c` contains process startup.
-- `config.c` and `config.h` contain defaults and environment configuration.
-- `http/` contains networking and HTTP-facing code.
-- `datastruct/` contains internal generic data structures.
+- `config.c` contains defaults and environment configuration.
+- `http/` contains networking and HTTP implementation code.
+- `datastruct/` contains internal generic data structure implementations.
+- `include/` contains headers, grouped by the same subsystem directories as
+  their implementations.
 - `tests/` contains in-repo C unit tests and its own Makefile.
 - `nix/` contains flake package, shell, hook, and workflow support.
 - `.github/workflows/` contains generated CI workflows.
@@ -22,5 +24,7 @@
 - Avoid public names that collide with standard C or POSIX APIs. For example, use `server_listen` instead of `listen`.
 - Use `uint8_t` for byte-wise pointer arithmetic and raw byte APIs. Use `void*` for generic storage and `char` for C strings.
 - Put internal `static` functions at the top of `.c` files, then define public functions in the same order as the matching header.
+- Prefer returning small values and structs directly from value-producing functions.
+- Use pointer parameters for mutation, ownership, and allocation-backed lifecycle operations.
 - Prefer `#define` for simple compile-time constants.
 - Keep the build simple and Makefile-driven.
