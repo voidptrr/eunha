@@ -2,11 +2,11 @@
 
 ## Project Structure
 
-- `main.c` contains process startup.
-- `config.c` contains defaults and environment configuration.
-- `http/` contains HTTP protocol parsing and request implementation code.
-- `net/` contains socket and server implementation code.
-- `datastruct/` contains internal generic data structure implementations.
+- `src/main.c` contains process startup.
+- `src/config.c` contains defaults and environment configuration.
+- `src/http/` contains HTTP protocol parsing and request implementation code.
+- `src/net/` contains socket and server implementation code.
+- `src/datastruct/` contains internal generic data structure implementations.
 - `include/` contains headers, grouped by the same subsystem directories as
   their implementations.
 - `tests/` contains in-repo C unit tests and its own Makefile.

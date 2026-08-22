@@ -23,6 +23,7 @@
 CC ?= gcc
 PROJECT_ROOT ?= ..
 BUILD_DIR ?= $(PROJECT_ROOT)/build
+SOURCE_DIR := $(PROJECT_ROOT)/src
 
 WARNINGS := -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wstrict-prototypes -Wmissing-prototypes -Wcast-align -Wformat=2 -Wundef -Wwrite-strings
 CFLAGS ?= -std=c17 $(WARNINGS)
@@ -40,26 +41,26 @@ test: $(TEST_TARGETS)
 	$(BUILD_DIR)/test_request
 	$(BUILD_DIR)/test_parser
 
-$(BUILD_DIR)/test_vector: test_vector.c $(PROJECT_ROOT)/datastruct/vector.c
+$(BUILD_DIR)/test_vector: test_vector.c $(SOURCE_DIR)/datastruct/vector.c
 	mkdir -p $(@D)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@
 
-$(BUILD_DIR)/test_string: test_string.c $(PROJECT_ROOT)/datastruct/string.c
+$(BUILD_DIR)/test_string: test_string.c $(SOURCE_DIR)/datastruct/string.c
 	mkdir -p $(@D)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@
 
-$(BUILD_DIR)/test_utils: test_utils.c $(PROJECT_ROOT)/utils.c
+$(BUILD_DIR)/test_utils: test_utils.c $(SOURCE_DIR)/utils.c
 	mkdir -p $(@D)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@
 
-$(BUILD_DIR)/test_header: http/test_header.c $(PROJECT_ROOT)/http/header.c $(PROJECT_ROOT)/datastruct/string.c $(PROJECT_ROOT)/datastruct/vector.c $(PROJECT_ROOT)/utils.c
+$(BUILD_DIR)/test_header: http/test_header.c $(SOURCE_DIR)/http/header.c $(SOURCE_DIR)/datastruct/string.c $(SOURCE_DIR)/datastruct/vector.c $(SOURCE_DIR)/utils.c
 	mkdir -p $(@D)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@
 
-$(BUILD_DIR)/test_request: http/test_request.c $(PROJECT_ROOT)/http/request.c $(PROJECT_ROOT)/http/header.c $(PROJECT_ROOT)/datastruct/string.c $(PROJECT_ROOT)/datastruct/vector.c $(PROJECT_ROOT)/utils.c
+$(BUILD_DIR)/test_request: http/test_request.c $(SOURCE_DIR)/http/request.c $(SOURCE_DIR)/http/header.c $(SOURCE_DIR)/datastruct/string.c $(SOURCE_DIR)/datastruct/vector.c $(SOURCE_DIR)/utils.c
 	mkdir -p $(@D)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@
 
-$(BUILD_DIR)/test_parser: http/test_parser.c $(PROJECT_ROOT)/http/parser.c $(PROJECT_ROOT)/http/request.c $(PROJECT_ROOT)/http/header.c $(PROJECT_ROOT)/datastruct/string.c $(PROJECT_ROOT)/datastruct/vector.c $(PROJECT_ROOT)/utils.c
+$(BUILD_DIR)/test_parser: http/test_parser.c $(SOURCE_DIR)/http/parser.c $(SOURCE_DIR)/http/request.c $(SOURCE_DIR)/http/header.c $(SOURCE_DIR)/datastruct/string.c $(SOURCE_DIR)/datastruct/vector.c $(SOURCE_DIR)/utils.c
 	mkdir -p $(@D)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -Wl,--wrap=malloc -Wl,--wrap=realloc -o $@

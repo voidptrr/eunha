@@ -30,13 +30,8 @@
       fileset = pkgs.lib.fileset.unions [
         ../LICENSE
         ../Makefile
-        ../config.c
-        ../datastruct
-        ../http
         ../include
-        ../main.c
-        ../net
-        ../utils.c
+        ../src
       ];
     };
   in {
