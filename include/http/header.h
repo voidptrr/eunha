@@ -26,33 +26,25 @@
 #define EUNHA_HEADER_H
 
 #include <stddef.h>
-#include <stdint.h>
 
 #include "datastruct/string.h"
-#include "datastruct/vector.h"
+
+#define HTTP_HEADER_AUTHORIZATION "Authorization"
+#define HTTP_HEADER_CONTENT_LENGTH "Content-Length"
+#define HTTP_HEADER_CONTENT_TYPE "Content-Type"
+#define HTTP_HEADER_HOST "Host"
+#define HTTP_HEADER_TRANSFER_ENCODING "Transfer-Encoding"
+
+struct header_entry;
 
 /*
- * One owned HTTP field. Names retain their original spelling and values have
- * surrounding optional whitespace removed.
- */
-struct header {
-    struct string name;
-    struct string value;
-};
-
-/*
- * Ordered collection of every header received in a request.
+ * Case-insensitive header table. Each entry groups values for one field name
+ * in arrival order.
  */
 struct headers {
-    struct vector fields;
-};
-
-/*
- * Cursor used to visit headers in wire order.
- */
-struct header_iterator {
-    const struct headers* headers;
-    size_t index;
+    struct header_entry* entries;
+    size_t length;
+    size_t capacity;
 };
 
 /* Initializes an empty header collection. */
@@ -60,14 +52,18 @@ enum eunha_result headers_init(struct headers* headers);
 
 /* Parses and stores one header line without its trailing CRLF. */
 enum eunha_result headers_parse_line(
-    struct headers* headers, const uint8_t* data, size_t length);
+    struct headers* headers, const struct string* line);
 
-/* Returns the next header, or NULL after the final header. */
-const struct header* header_iterator_next(struct header_iterator* iterator);
-
-/* Returns the first header matching name with ASCII case ignored. */
-const struct header* headers_get(
+/* Returns the first value matching name with ASCII case ignored. */
+const struct string* headers_get(
     const struct headers* headers, const char* name);
+
+/* Returns how many values are stored for a case-insensitive name. */
+size_t headers_value_count(const struct headers* headers, const char* name);
+
+/* Returns one value by arrival index, or NULL when absent or out of bounds. */
+const struct string* headers_get_at(
+    const struct headers* headers, const char* name, size_t index);
 
 /* Releases every header and the collection storage. */
 void headers_deinit(struct headers* headers);

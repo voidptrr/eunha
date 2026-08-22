@@ -31,15 +31,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "datastruct/vector.h"
 #include "eunha.h"
 #include "http/header.h"
 #include "http/parser.h"
 #include "http/request.h"
 
 void* __real_malloc(size_t size);
+void* __real_calloc(size_t count, size_t size);
 void* __real_realloc(void* data, size_t size);
 void* __wrap_malloc(size_t size);
+void* __wrap_calloc(size_t count, size_t size);
 void* __wrap_realloc(void* data, size_t size);
 
 static size_t allocations_before_failure = SIZE_MAX;
@@ -78,6 +79,15 @@ void* __wrap_malloc(size_t size) {
     return __real_malloc(size);
 }
 
+/* Linker wrapper used when malloc plus zeroing is folded into calloc. */
+void* __wrap_calloc(size_t count, size_t size) {
+    if (allocator_should_fail()) {
+        return NULL;
+    }
+
+    return __real_calloc(count, size);
+}
+
 /* Linker wrapper used to exercise growth failures without production hooks. */
 void* __wrap_realloc(void* data, size_t size) {
     if (allocator_should_fail()) {
@@ -98,7 +108,7 @@ static int test_parser_lifecycle(void) {
     assert(parser.request.target.length == 0);
     assert(parser.request.body.length == 0);
     assert(parser.partial_line.length == 0);
-    assert(vector_len(&parser.request.headers.fields) == 0);
+    assert(parser.request.headers.length == 0);
     assert(parser.header_section_length == 0);
     assert(parser.expected_body_length == 0);
     assert(!parser.awaiting_line_feed);
@@ -108,7 +118,7 @@ static int test_parser_lifecycle(void) {
     assert(parser.request.target.data == NULL);
     assert(parser.request.body.data == NULL);
     assert(parser.partial_line.data == NULL);
-    assert(parser.request.headers.fields.data == NULL);
+    assert(parser.request.headers.entries == NULL);
     return 0;
 }
 
@@ -132,13 +142,12 @@ static int test_complete_request(void) {
         strcmp((const char*)parser.request.target.data, "/oauth2/token") == 0);
     assert(parser.request.body.length == 5);
     assert(memcmp(parser.request.body.data, "hello", 5) == 0);
-    assert(vector_len(&parser.request.headers.fields) == 4);
+    assert(parser.request.headers.length == 4);
 
-    const struct header* content_type =
-        headers_get(&parser.request.headers, "content-type");
+    const struct string* content_type =
+        headers_get(&parser.request.headers, HTTP_HEADER_CONTENT_TYPE);
     assert(content_type != NULL);
-    assert(
-        strcmp((const char*)content_type->value.data, "application/json") == 0);
+    assert(strcmp(content_type->data, "application/json") == 0);
     assert(headers_get(&parser.request.headers, "x-request-id") != NULL);
     assert(parser_get_request(&parser) == &parser.request);
     assert(parser_feed(&parser, NULL, 0) == PARSER_STATUS_COMPLETE);
@@ -251,17 +260,21 @@ static int test_methods_and_versions(void) {
     return 0;
 }
 
-/* Parses one malformed message and verifies INVALID remains sticky. */
-static int assert_invalid_request(const char* message) {
+/* Parses malformed bytes and verifies INVALID remains sticky. */
+static int assert_invalid_bytes(const uint8_t* message, size_t length) {
     struct parser parser;
 
     assert(parser_init(&parser) == EUNHA_OK);
-    assert(parser_feed(&parser, (const uint8_t*)message, strlen(message)) ==
-           PARSER_STATUS_INVALID);
+    assert(parser_feed(&parser, message, length) == PARSER_STATUS_INVALID);
     assert(parser_get_request(&parser) == NULL);
     assert(parser_feed(&parser, NULL, 0) == PARSER_STATUS_INVALID);
     parser_deinit(&parser);
     return 0;
+}
+
+/* Parses one malformed C string. */
+static int assert_invalid_request(const char* message) {
+    return assert_invalid_bytes((const uint8_t*)message, strlen(message));
 }
 
 /* Verifies syntax, known-header, and framing failures are rejected. */
@@ -296,6 +309,28 @@ static int test_invalid_requests(void) {
     return 0;
 }
 
+/* Verifies embedded NUL bytes cannot truncate textual grammar checks. */
+static int test_embedded_nul_rejection(void) {
+    static const char method[] =
+        "GET\0X / HTTP/1.1\r\nHost: example.test\r\n\r\n";
+    static const char target[] =
+        "GET /\0x HTTP/1.1\r\nHost: example.test\r\n\r\n";
+    static const char version[] =
+        "GET / HTTP/1.1\0x\r\nHost: example.test\r\n\r\n";
+    static const char header[] =
+        "GET / HTTP/1.1\r\nHost: example\0.test\r\n\r\n";
+
+    assert(
+        assert_invalid_bytes((const uint8_t*)method, sizeof(method) - 1) == 0);
+    assert(
+        assert_invalid_bytes((const uint8_t*)target, sizeof(target) - 1) == 0);
+    assert(assert_invalid_bytes((const uint8_t*)version, sizeof(version) - 1) ==
+           0);
+    assert(
+        assert_invalid_bytes((const uint8_t*)header, sizeof(header) - 1) == 0);
+    return 0;
+}
+
 /* Verifies non-framing duplicates remain application-owned request data. */
 static int test_non_framing_headers(void) {
     const char message[] = "GET / HTTP/1.1\r\n"
@@ -312,20 +347,28 @@ static int test_non_framing_headers(void) {
     assert(parser_init(&parser) == EUNHA_OK);
     assert(parser_feed(&parser, (const uint8_t*)message, sizeof(message) - 1) ==
            PARSER_STATUS_COMPLETE);
-    assert(vector_len(&parser.request.headers.fields) == 7);
+    assert(parser.request.headers.length == 4);
+    assert(headers_value_count(
+               &parser.request.headers, HTTP_HEADER_CONTENT_TYPE) == 2);
+    assert(headers_value_count(
+               &parser.request.headers, HTTP_HEADER_AUTHORIZATION) == 2);
+    assert(headers_value_count(&parser.request.headers, "X-Duplicate") == 2);
 
-    const struct header* header =
-        headers_get(&parser.request.headers, "CONTENT-TYPE");
-    assert(header != NULL);
-    assert(strcmp((const char*)header->value.data, "application") == 0);
+    const struct string* value =
+        headers_get(&parser.request.headers, HTTP_HEADER_CONTENT_TYPE);
+    assert(value != NULL);
+    assert(strcmp(value->data, "application") == 0);
 
-    header = headers_get(&parser.request.headers, "authorization");
-    assert(header != NULL);
-    assert(header->value.length == 0);
+    value = headers_get(&parser.request.headers, HTTP_HEADER_AUTHORIZATION);
+    assert(value != NULL);
+    assert(value->length == 0);
 
-    header = headers_get(&parser.request.headers, "x-duplicate");
-    assert(header != NULL);
-    assert(strcmp((const char*)header->value.data, "first") == 0);
+    value = headers_get(&parser.request.headers, "x-duplicate");
+    assert(value != NULL);
+    assert(strcmp(value->data, "first") == 0);
+    value = headers_get_at(&parser.request.headers, "X-Duplicate", 1);
+    assert(value != NULL);
+    assert(strcmp(value->data, "second") == 0);
     parser_deinit(&parser);
     return 0;
 }
@@ -334,6 +377,9 @@ static int test_non_framing_headers(void) {
 static int test_body_framing(void) {
     const char headers[] = "POST / HTTP/1.1\r\nHost: example.test\r\n"
                            "Content-Length: 5\r\n\r\n";
+    const char binary_headers[] = "POST / HTTP/1.1\r\nHost: example.test\r\n"
+                                  "Content-Length: 3\r\n\r\n";
+    static const uint8_t binary_body[] = {'a', 0, 'b'};
     struct parser parser;
 
     assert(parser_init(&parser) == EUNHA_OK);
@@ -346,6 +392,17 @@ static int test_body_framing(void) {
            PARSER_STATUS_COMPLETE);
     assert(parser.request.body.length == 5);
     assert(memcmp(parser.request.body.data, "hello", 5) == 0);
+    parser_deinit(&parser);
+
+    assert(parser_init(&parser) == EUNHA_OK);
+    assert(parser_feed(&parser, (const uint8_t*)binary_headers,
+               sizeof(binary_headers) - 1) == PARSER_STATUS_INCOMPLETE);
+    assert(parser_feed(&parser, binary_body, sizeof(binary_body)) ==
+           PARSER_STATUS_COMPLETE);
+    assert(parser.request.body.length == sizeof(binary_body));
+    assert(memcmp(parser.request.body.data, binary_body, sizeof(binary_body)) ==
+           0);
+    assert(parser.request.body.data[parser.request.body.length] == 0);
     parser_deinit(&parser);
     return 0;
 }
@@ -455,25 +512,47 @@ static int test_allocation_errors(void) {
         allocator_reset();
     }
 
-    struct parser parser;
     const char long_start[] = "GET /abcdefghijklmnopq HTTP/1.1";
-    assert(parser_init(&parser) == EUNHA_OK);
-    assert(parser_feed(&parser, (const uint8_t*)long_start,
-               sizeof(long_start) - 1) == PARSER_STATUS_INCOMPLETE);
-    allocator_fail_after(0);
-    assert(
-        parser_feed(&parser, (const uint8_t*)"\r\n", 2) == PARSER_STATUS_ERROR);
-    allocator_reset();
-    assert(parser_get_request(&parser) == NULL);
-    assert(parser_feed(&parser, NULL, 0) == PARSER_STATUS_ERROR);
-    parser_deinit(&parser);
+    for (size_t successful = 0; successful < 4; successful += 1) {
+        struct parser parser;
+        assert(parser_init(&parser) == EUNHA_OK);
+        assert(parser_feed(&parser, (const uint8_t*)long_start,
+                   sizeof(long_start) - 1) == PARSER_STATUS_INCOMPLETE);
+        allocator_fail_after(successful);
+        assert(parser_feed(&parser, (const uint8_t*)"\r\n", 2) ==
+               PARSER_STATUS_ERROR);
+        allocator_reset();
+        assert(parser_get_request(&parser) == NULL);
+        assert(parser_feed(&parser, NULL, 0) == PARSER_STATUS_ERROR);
+        parser_deinit(&parser);
+    }
 
     const char start[] = "GET / HTTP/1.1\r\n";
+    for (size_t successful = 0; successful < 3; successful += 1) {
+        struct parser parser;
+        assert(parser_init(&parser) == EUNHA_OK);
+        assert(parser_feed(&parser, (const uint8_t*)start, sizeof(start) - 1) ==
+               PARSER_STATUS_INCOMPLETE);
+        allocator_fail_after(successful);
+        assert(parser_feed(&parser, (const uint8_t*)"Host: x\r\n", 9) ==
+               PARSER_STATUS_ERROR);
+        allocator_reset();
+        parser_deinit(&parser);
+    }
+
+    const char table_at_limit[] = "GET / HTTP/1.1\r\n"
+                                  "Host: example.test\r\n"
+                                  "X-1: x\r\n"
+                                  "X-2: x\r\n"
+                                  "X-3: x\r\n"
+                                  "X-4: x\r\n"
+                                  "X-5: x\r\n";
+    struct parser parser;
     assert(parser_init(&parser) == EUNHA_OK);
-    assert(parser_feed(&parser, (const uint8_t*)start, sizeof(start) - 1) ==
-           PARSER_STATUS_INCOMPLETE);
-    allocator_fail_after(0);
-    assert(parser_feed(&parser, (const uint8_t*)"Host: x\r\n", 9) ==
+    assert(parser_feed(&parser, (const uint8_t*)table_at_limit,
+               sizeof(table_at_limit) - 1) == PARSER_STATUS_INCOMPLETE);
+    allocator_fail_after(2);
+    assert(parser_feed(&parser, (const uint8_t*)"X-6: x\r\n", 8) ==
            PARSER_STATUS_ERROR);
     allocator_reset();
     parser_deinit(&parser);
@@ -500,6 +579,7 @@ int main(void) {
     assert(test_partial_lines() == 0);
     assert(test_methods_and_versions() == 0);
     assert(test_invalid_requests() == 0);
+    assert(test_embedded_nul_rejection() == 0);
     assert(test_non_framing_headers() == 0);
     assert(test_body_framing() == 0);
     assert(test_trailing_bytes() == 0);

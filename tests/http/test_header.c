@@ -24,97 +24,133 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
-#include "datastruct/vector.h"
+#include "datastruct/string.h"
 #include "eunha.h"
 #include "http/header.h"
 
-/* Verifies empty collection initialization and nested cleanup. */
+/* Parses one C string through the owned string-based header API. */
+static enum eunha_result headers_parse_c_string(
+    struct headers* headers, const char* value) {
+    struct string line;
+    if (string_init(&line, value) == EUNHA_ERROR) {
+        return EUNHA_ERROR;
+    }
+
+    enum eunha_result result = headers_parse_line(headers, &line);
+    string_deinit(&line);
+    return result;
+}
+
+/* Verifies empty table initialization and nested cleanup. */
 static int test_headers_lifecycle(void) {
     struct headers headers;
-    const char first[] = "Host: example.test";
-    const char second[] = "X-Trace: abc";
 
     assert(headers_init(&headers) == EUNHA_OK);
-    assert(vector_len(&headers.fields) == 0);
-    assert(headers_parse_line(&headers, (const uint8_t*)first, strlen(first)) ==
-           EUNHA_OK);
-    assert(headers_parse_line(
-               &headers, (const uint8_t*)second, strlen(second)) == EUNHA_OK);
+    assert(headers.entries != NULL);
+    assert(headers.length == 0);
+    assert(headers.capacity > 0);
+    assert(headers_parse_c_string(&headers, "Host: example.test") == EUNHA_OK);
+    assert(headers_parse_c_string(&headers, "X-Trace: abc") == EUNHA_OK);
+    assert(headers.length == 2);
 
     headers_deinit(&headers);
-    assert(headers.fields.data == NULL);
-    assert(headers.fields.item_size == 0);
-    assert(headers.fields.length == 0);
-    assert(headers.fields.capacity == 0);
+    assert(headers.entries == NULL);
+    assert(headers.length == 0);
+    assert(headers.capacity == 0);
     return 0;
 }
 
-/* Verifies every name/value pair is copied, trimmed, and searchable. */
+/* Verifies values are copied, trimmed, and found case-insensitively. */
 static int test_header_ownership_and_lookup(void) {
     char host[] = "hOsT:\t example.test  ";
-    const char custom[] = "X-Request-ID: abc-123";
-    const char empty[] = "X-Empty:";
     struct headers headers;
+    struct string line;
 
     assert(headers_init(&headers) == EUNHA_OK);
-    assert(headers_parse_line(&headers, (const uint8_t*)host, strlen(host)) ==
-           EUNHA_OK);
-    assert(headers_parse_line(
-               &headers, (const uint8_t*)custom, strlen(custom)) == EUNHA_OK);
-    assert(headers_parse_line(&headers, (const uint8_t*)empty, strlen(empty)) ==
-           EUNHA_OK);
+    assert(string_init(&line, host) == EUNHA_OK);
+    assert(headers_parse_line(&headers, &line) == EUNHA_OK);
+    string_deinit(&line);
+    assert(
+        headers_parse_c_string(&headers, "X-Request-ID: abc-123") == EUNHA_OK);
+    assert(headers_parse_c_string(&headers, "X-Empty:") == EUNHA_OK);
     memset(host, 'x', sizeof(host) - 1);
 
-    const struct header* header = headers_get(&headers, "HOST");
-    assert(header != NULL);
-    assert(strcmp((const char*)header->name.data, "hOsT") == 0);
-    assert(strcmp((const char*)header->value.data, "example.test") == 0);
+    const struct string* value = headers_get(&headers, HTTP_HEADER_HOST);
+    assert(value != NULL);
+    assert(string_equals(value, "example.test"));
 
-    header = headers_get(&headers, "x-request-id");
-    assert(header != NULL);
-    assert(strcmp((const char*)header->name.data, "X-Request-ID") == 0);
-    assert(strcmp((const char*)header->value.data, "abc-123") == 0);
+    value = headers_get(&headers, "x-request-id");
+    assert(value != NULL);
+    assert(string_equals(value, "abc-123"));
 
-    header = headers_get(&headers, "x-empty");
-    assert(header != NULL);
-    assert(header->value.length == 0);
+    value = headers_get(&headers, "x-empty");
+    assert(value != NULL);
+    assert(value->length == 0);
     assert(headers_get(&headers, "missing") == NULL);
 
     headers_deinit(&headers);
     return 0;
 }
 
-/* Verifies duplicate fields are retained in their original wire order. */
-static int test_duplicates_and_iteration(void) {
-    const char first[] = "Content-Type: application/json";
-    const char second[] = "content-type: text/plain";
+/* Verifies differently-cased duplicate names share ordered values. */
+static int test_duplicate_values(void) {
     struct headers headers;
 
     assert(headers_init(&headers) == EUNHA_OK);
-    assert(headers_parse_line(&headers, (const uint8_t*)first, strlen(first)) ==
+    assert(headers_parse_c_string(&headers, "Content-Type: application/json") ==
            EUNHA_OK);
-    assert(headers_parse_line(
-               &headers, (const uint8_t*)second, strlen(second)) == EUNHA_OK);
-    assert(vector_len(&headers.fields) == 2);
-    assert(headers_get(&headers, "CONTENT-TYPE") != NULL);
+    assert(headers_parse_c_string(&headers, "content-type: text/plain") ==
+           EUNHA_OK);
+    assert(headers.length == 1);
+    assert(headers_value_count(&headers, HTTP_HEADER_CONTENT_TYPE) == 2);
 
-    struct header_iterator iterator = {
-        .headers = &headers,
-        .index = 0,
-    };
-    const struct header* header = header_iterator_next(&iterator);
-    assert(header != NULL);
-    assert(strcmp((const char*)header->name.data, "Content-Type") == 0);
-    assert(strcmp((const char*)header->value.data, "application/json") == 0);
+    const struct string* value = headers_get_at(&headers, "content-type", 0);
+    assert(value != NULL);
+    assert(string_equals(value, "application/json"));
 
-    header = header_iterator_next(&iterator);
-    assert(header != NULL);
-    assert(strcmp((const char*)header->name.data, "content-type") == 0);
-    assert(strcmp((const char*)header->value.data, "text/plain") == 0);
-    assert(header_iterator_next(&iterator) == NULL);
+    value = headers_get_at(&headers, "CONTENT-TYPE", 1);
+    assert(value != NULL);
+    assert(string_equals(value, "text/plain"));
+    assert(headers_get_at(&headers, "content-type", 2) == NULL);
+    assert(headers_value_count(&headers, "missing") == 0);
+
+    headers_deinit(&headers);
+    return 0;
+}
+
+/* Verifies table growth preserves every case-insensitive lookup. */
+static int test_header_table_growth(void) {
+    struct headers headers;
+
+    assert(headers_init(&headers) == EUNHA_OK);
+    for (size_t index = 0; index < 64; index += 1) {
+        char line[64];
+        int written = snprintf(
+            line, sizeof(line), "X-Header-%zu: value-%zu", index, index);
+        assert(written > 0);
+        assert((size_t)written < sizeof(line));
+        assert(headers_parse_c_string(&headers, line) == EUNHA_OK);
+    }
+
+    assert(headers.length == 64);
+    assert(headers.capacity > 64);
+
+    for (size_t index = 0; index < 64; index += 1) {
+        char name[64];
+        char expected[64];
+        int name_length = snprintf(name, sizeof(name), "x-header-%zu", index);
+        int value_length =
+            snprintf(expected, sizeof(expected), "value-%zu", index);
+        assert(name_length > 0 && (size_t)name_length < sizeof(name));
+        assert(value_length > 0 && (size_t)value_length < sizeof(expected));
+
+        const struct string* value = headers_get(&headers, name);
+        assert(value != NULL);
+        assert(string_equals(value, expected));
+    }
 
     headers_deinit(&headers);
     return 0;
@@ -133,20 +169,20 @@ static int test_invalid_headers(void) {
     assert(headers_init(&headers) == EUNHA_OK);
     for (size_t index = 0; index < sizeof(invalid) / sizeof(invalid[0]);
         index += 1) {
-        assert(headers_parse_line(&headers, (const uint8_t*)invalid[index],
-                   strlen(invalid[index])) == EUNHA_ERROR);
-        assert(vector_len(&headers.fields) == 0);
+        assert(headers_parse_c_string(&headers, invalid[index]) == EUNHA_ERROR);
+        assert(headers.length == 0);
     }
 
     headers_deinit(&headers);
     return 0;
 }
 
-/* Runs generic ordered header ownership tests. */
+/* Runs hashed header ownership, duplicate, and growth tests. */
 int main(void) {
     assert(test_headers_lifecycle() == 0);
     assert(test_header_ownership_and_lookup() == 0);
-    assert(test_duplicates_and_iteration() == 0);
+    assert(test_duplicate_values() == 0);
+    assert(test_header_table_growth() == 0);
     assert(test_invalid_headers() == 0);
     return 0;
 }

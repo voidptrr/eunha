@@ -24,7 +24,6 @@
 
 #include <assert.h>
 
-#include "datastruct/vector.h"
 #include "eunha.h"
 #include "http/request.h"
 
@@ -37,12 +36,13 @@ static int test_request_lifecycle(void) {
     assert(request.version == HTTP_VERSION_UNKNOWN);
     assert(request.target.length == 0);
     assert(request.body.length == 0);
-    assert(vector_len(&request.headers.fields) == 0);
+    assert(request.headers.entries != NULL);
+    assert(request.headers.length == 0);
 
     request_deinit(&request);
     assert(request.target.data == NULL);
     assert(request.body.data == NULL);
-    assert(request.headers.fields.data == NULL);
+    assert(request.headers.entries == NULL);
     return 0;
 }
 

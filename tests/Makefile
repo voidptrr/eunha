@@ -29,14 +29,13 @@ WARNINGS := -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Ws
 CFLAGS ?= -std=c17 $(WARNINGS)
 CPPFLAGS += -I$(PROJECT_ROOT)/include
 
-TEST_TARGETS := $(BUILD_DIR)/test_vector $(BUILD_DIR)/test_string $(BUILD_DIR)/test_utils $(BUILD_DIR)/test_header $(BUILD_DIR)/test_request $(BUILD_DIR)/test_parser
+TEST_TARGETS := $(BUILD_DIR)/test_vector $(BUILD_DIR)/test_string $(BUILD_DIR)/test_header $(BUILD_DIR)/test_request $(BUILD_DIR)/test_parser
 
 .PHONY: test
 
 test: $(TEST_TARGETS)
 	$(BUILD_DIR)/test_vector
 	$(BUILD_DIR)/test_string
-	$(BUILD_DIR)/test_utils
 	$(BUILD_DIR)/test_header
 	$(BUILD_DIR)/test_request
 	$(BUILD_DIR)/test_parser
@@ -49,18 +48,14 @@ $(BUILD_DIR)/test_string: test_string.c $(SOURCE_DIR)/datastruct/string.c
 	mkdir -p $(@D)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@
 
-$(BUILD_DIR)/test_utils: test_utils.c $(SOURCE_DIR)/utils.c
+$(BUILD_DIR)/test_header: http/test_header.c $(SOURCE_DIR)/http/header.c $(SOURCE_DIR)/datastruct/string.c $(SOURCE_DIR)/datastruct/vector.c
 	mkdir -p $(@D)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@
 
-$(BUILD_DIR)/test_header: http/test_header.c $(SOURCE_DIR)/http/header.c $(SOURCE_DIR)/datastruct/string.c $(SOURCE_DIR)/datastruct/vector.c $(SOURCE_DIR)/utils.c
+$(BUILD_DIR)/test_request: http/test_request.c $(SOURCE_DIR)/http/request.c $(SOURCE_DIR)/http/header.c $(SOURCE_DIR)/datastruct/string.c $(SOURCE_DIR)/datastruct/vector.c
 	mkdir -p $(@D)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@
 
-$(BUILD_DIR)/test_request: http/test_request.c $(SOURCE_DIR)/http/request.c $(SOURCE_DIR)/http/header.c $(SOURCE_DIR)/datastruct/string.c $(SOURCE_DIR)/datastruct/vector.c $(SOURCE_DIR)/utils.c
+$(BUILD_DIR)/test_parser: http/test_parser.c $(SOURCE_DIR)/http/parser.c $(SOURCE_DIR)/http/request.c $(SOURCE_DIR)/http/header.c $(SOURCE_DIR)/datastruct/string.c $(SOURCE_DIR)/datastruct/vector.c
 	mkdir -p $(@D)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@
-
-$(BUILD_DIR)/test_parser: http/test_parser.c $(SOURCE_DIR)/http/parser.c $(SOURCE_DIR)/http/request.c $(SOURCE_DIR)/http/header.c $(SOURCE_DIR)/datastruct/string.c $(SOURCE_DIR)/datastruct/vector.c $(SOURCE_DIR)/utils.c
-	mkdir -p $(@D)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -Wl,--wrap=malloc -Wl,--wrap=realloc -o $@
+	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -Wl,--wrap=malloc -Wl,--wrap=calloc -Wl,--wrap=realloc -o $@

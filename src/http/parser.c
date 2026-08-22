@@ -32,34 +32,10 @@
 #include "http/header.h"
 #include "http/parser.h"
 #include "http/request.h"
-#include "utils.h"
 
 #define CR 0x0D
 #define LF 0x0A
 #define SP 0x20
-
-struct method_entry {
-    const char* name;
-    enum request_method method;
-};
-
-struct version_entry {
-    const char* name;
-    enum request_version version;
-};
-
-static const struct method_entry method_entries[] = {
-    {.name = "GET", .method = REQUEST_METHOD_GET},
-    {.name = "POST", .method = REQUEST_METHOD_POST},
-    {.name = "PUT", .method = REQUEST_METHOD_PUT},
-    {.name = "PATCH", .method = REQUEST_METHOD_PATCH},
-    {.name = "DELETE", .method = REQUEST_METHOD_DELETE},
-};
-
-static const struct version_entry version_entries[] = {
-    {.name = "HTTP/1.0", .version = HTTP_VERSION_1_0},
-    {.name = "HTTP/1.1", .version = HTTP_VERSION_1_1},
-};
 
 /* Changes the parser into a sticky malformed-input state. */
 static enum parser_status parser_set_invalid(struct parser* parser) {
@@ -82,23 +58,74 @@ static enum parser_status parser_fail_from_errno(struct parser* parser) {
     return parser_set_invalid(parser);
 }
 
+/* Maps one supported method string without allocating another lookup table. */
+static enum request_method parser_parse_method(const struct string* method) {
+    if (string_equals(method, "GET")) {
+        return REQUEST_METHOD_GET;
+    }
+
+    if (string_equals(method, "POST")) {
+        return REQUEST_METHOD_POST;
+    }
+
+    if (string_equals(method, "PUT")) {
+        return REQUEST_METHOD_PUT;
+    }
+
+    if (string_equals(method, "PATCH")) {
+        return REQUEST_METHOD_PATCH;
+    }
+
+    if (string_equals(method, "DELETE")) {
+        return REQUEST_METHOD_DELETE;
+    }
+
+    return REQUEST_METHOD_UNKNOWN;
+}
+
+/* Maps one supported protocol version. */
+static enum request_version parser_parse_version(const struct string* version) {
+    if (string_equals(version, "HTTP/1.0")) {
+        return HTTP_VERSION_1_0;
+    }
+
+    if (string_equals(version, "HTTP/1.1")) {
+        return HTTP_VERSION_1_1;
+    }
+
+    return HTTP_VERSION_UNKNOWN;
+}
+
 /* Parses method SP request-target SP HTTP-version into the owned request. */
 static enum parser_status parser_parse_start_line(
-    struct parser* parser, struct buffer line) {
-    const uint8_t* end = line.data + line.length;
-    const uint8_t* first_space = memchr(line.data, SP, line.length);
+    struct parser* parser, const struct string* line) {
+    struct string_split method_and_rest;
+    if (string_split_once(line, SP, &method_and_rest) == EUNHA_ERROR) {
+        return parser_set_error(parser);
+    }
 
     /* The method must be non-empty and followed by one separator. */
-    if (first_space == NULL || first_space == line.data) {
+    if (method_and_rest.length != 2 || method_and_rest.values[0].length == 0) {
+        string_split_deinit(&method_and_rest);
         errno = EINVAL;
         return parser_set_invalid(parser);
     }
 
-    const uint8_t* target = first_space + 1;
-    const uint8_t* second_space = memchr(target, SP, (size_t)(end - target));
+    struct string_split target_and_version;
+    if (string_split_once(&method_and_rest.values[1], SP,
+            &target_and_version) == EUNHA_ERROR) {
+        string_split_deinit(&method_and_rest);
+        return parser_set_error(parser);
+    }
 
     /* The request target must also be present before the second separator. */
-    if (second_space == NULL || second_space == target) {
+    if (target_and_version.length != 2 ||
+        target_and_version.values[0].length == 0 ||
+        target_and_version.values[1].length == 0 ||
+        memchr(target_and_version.values[1].data, SP,
+            target_and_version.values[1].length) != NULL) {
+        string_split_deinit(&target_and_version);
+        string_split_deinit(&method_and_rest);
         errno = EINVAL;
         return parser_set_invalid(parser);
     }
@@ -106,73 +133,45 @@ static enum parser_status parser_parse_start_line(
     /*
      * Spaces and control bytes are not valid inside this request-target form.
      */
-    for (const uint8_t* byte = target; byte < second_space; byte += 1) {
-        if (*byte < 0x21 || *byte > 0x7E) {
+    const struct string* target = &target_and_version.values[0];
+    for (size_t index = 0; index < target->length; index += 1) {
+        uint8_t byte = (uint8_t)target->data[index];
+        if (byte < 0x21 || byte > 0x7E) {
+            string_split_deinit(&target_and_version);
+            string_split_deinit(&method_and_rest);
             errno = EINVAL;
             return parser_set_invalid(parser);
         }
     }
 
-    const uint8_t* version_start = second_space + 1;
-    /* Reject a missing version or a fourth whitespace-separated component. */
-    if (version_start == end ||
-        memchr(version_start, SP, (size_t)(end - version_start)) != NULL) {
-        errno = EINVAL;
-        return parser_set_invalid(parser);
-    }
+    enum request_method parsed_method =
+        parser_parse_method(&method_and_rest.values[0]);
+    enum request_version parsed_version =
+        parser_parse_version(&target_and_version.values[1]);
 
-    struct buffer method = {
-        .data = line.data,
-        .length = (size_t)(first_space - line.data),
-    };
-    struct buffer version = {
-        .data = version_start,
-        .length = (size_t)(end - version_start),
-    };
-    enum request_method parsed_method = REQUEST_METHOD_UNKNOWN;
-    enum request_version parsed_version = HTTP_VERSION_UNKNOWN;
-
-    for (size_t index = 0;
-        index < sizeof(method_entries) / sizeof(method_entries[0]);
-        index += 1) {
-        if (buffer_equals(method, method_entries[index].name)) {
-            parsed_method = method_entries[index].method;
-            break;
-        }
-    }
-
-    for (size_t index = 0;
-        index < sizeof(version_entries) / sizeof(version_entries[0]);
-        index += 1) {
-        if (buffer_equals(version, version_entries[index].name)) {
-            parsed_version = version_entries[index].version;
-            break;
-        }
-    }
-
-    /* Only methods and HTTP versions represented by the lookup tables pass. */
+    /* Only explicitly supported methods and HTTP versions pass. */
     if (parsed_method == REQUEST_METHOD_UNKNOWN ||
         parsed_version == HTTP_VERSION_UNKNOWN) {
+        string_split_deinit(&target_and_version);
+        string_split_deinit(&method_and_rest);
         errno = EINVAL;
         return parser_set_invalid(parser);
     }
 
-    if (string_set(&parser->request.target, target,
-            (size_t)(second_space - target)) == EUNHA_ERROR) {
-        return parser_set_error(parser);
-    }
-
+    string_move(&parser->request.target, &target_and_version.values[0]);
     parser->request.method = parsed_method;
     parser->request.version = parsed_version;
     parser->state = PARSER_STATE_HEADERS;
+
+    string_split_deinit(&target_and_version);
+    string_split_deinit(&method_and_rest);
     return PARSER_STATUS_INCOMPLETE;
 }
 
 /* Appends one validated header line to the owned request. */
 static enum parser_status parser_parse_header_line(
-    struct parser* parser, struct buffer line) {
-    if (headers_parse_line(&parser->request.headers, line.data, line.length) ==
-        EUNHA_ERROR) {
+    struct parser* parser, const struct string* line) {
+    if (headers_parse_line(&parser->request.headers, line) == EUNHA_ERROR) {
         return parser_fail_from_errno(parser);
     }
 
@@ -181,66 +180,47 @@ static enum parser_status parser_parse_header_line(
 
 /* Validates framing and selects either body parsing or completion. */
 static enum parser_status parser_finish_headers(struct parser* parser) {
-    struct header_iterator iterator = {
-        .headers = &parser->request.headers,
-        .index = 0,
-    };
-    const struct header* header = NULL;
-    bool has_host = false;
-    bool has_content_length = false;
-    parser->expected_body_length = 0;
+    const struct string* host =
+        headers_get(&parser->request.headers, HTTP_HEADER_HOST);
+    size_t host_count =
+        headers_value_count(&parser->request.headers, HTTP_HEADER_HOST);
 
-    while ((header = header_iterator_next(&iterator)) != NULL) {
-        struct buffer name = {
-            .data = header->name.data,
-            .length = header->name.length,
-        };
-        struct buffer value = {
-            .data = header->value.data,
-            .length = header->value.length,
-        };
-
-        if (buffer_equals_case_insensitive(name, "Host")) {
-            /* Host is a singleton field and an empty value is unusable. */
-            if (has_host || value.length == 0) {
-                errno = EINVAL;
-                return parser_set_invalid(parser);
-            }
-
-            has_host = true;
-            continue;
-        }
-
-        if (buffer_equals_case_insensitive(name, "Content-Length")) {
-            /* Multiple lengths can disagree and make message framing unsafe. */
-            if (has_content_length) {
-                errno = EINVAL;
-                return parser_set_invalid(parser);
-            }
-
-            parser->expected_body_length = buffer_to_digit(value);
-            /* SIZE_MAX is reserved by buffer_to_digit for malformed input. */
-            if (parser->expected_body_length == SIZE_MAX) {
-                return parser_set_invalid(parser);
-            }
-
-            has_content_length = true;
-            continue;
-        }
-
-        if (buffer_equals_case_insensitive(name, "Transfer-Encoding")) {
-            /*
-             * Chunked and other transfer codings are intentionally unsupported.
-             */
-            errno = EINVAL;
-            return parser_set_invalid(parser);
-        }
+    /* Host is a singleton field and an empty value is unusable. */
+    if (host_count > 1 || (host != NULL && host->length == 0)) {
+        errno = EINVAL;
+        return parser_set_invalid(parser);
     }
 
     /* HTTP/1.1 requires Host even when the request has no body. */
-    if (parser->request.version == HTTP_VERSION_1_1 && !has_host) {
+    if (parser->request.version == HTTP_VERSION_1_1 && host == NULL) {
         errno = EINVAL;
         return parser_set_invalid(parser);
+    }
+
+    if (headers_get(&parser->request.headers, HTTP_HEADER_TRANSFER_ENCODING) !=
+        NULL) {
+        /* Chunked and other transfer codings are intentionally unsupported. */
+        errno = EINVAL;
+        return parser_set_invalid(parser);
+    }
+
+    const struct string* content_length =
+        headers_get(&parser->request.headers, HTTP_HEADER_CONTENT_LENGTH);
+    size_t content_length_count = headers_value_count(
+        &parser->request.headers, HTTP_HEADER_CONTENT_LENGTH);
+
+    /* Multiple lengths can disagree and make message framing unsafe. */
+    if (content_length_count > 1) {
+        errno = EINVAL;
+        return parser_set_invalid(parser);
+    }
+
+    parser->expected_body_length = 0;
+    if (content_length != NULL) {
+        parser->expected_body_length = string_parse_size(content_length);
+        if (parser->expected_body_length == SIZE_MAX) {
+            return parser_set_invalid(parser);
+        }
     }
 
     /* Bound allocation before accepting any body bytes. */
@@ -257,24 +237,19 @@ static enum parser_status parser_finish_headers(struct parser* parser) {
 
 /* Applies one complete request or header line. */
 static enum parser_status parser_parse_line(struct parser* parser) {
-    struct buffer line = {
-        .data = parser->partial_line.data,
-        .length = parser->partial_line.length,
-    };
-
     if (parser->state == PARSER_STATE_START_LINE) {
-        return parser_parse_start_line(parser, line);
+        return parser_parse_start_line(parser, &parser->partial_line);
     }
 
     assert(parser->state == PARSER_STATE_HEADERS);
     /* The section limit includes the CRLF terminating every header line. */
-    parser->header_section_length += line.length + 2;
+    parser->header_section_length += parser->partial_line.length + 2;
 
-    if (line.length == 0) {
+    if (parser->partial_line.length == 0) {
         return parser_finish_headers(parser);
     }
 
-    return parser_parse_header_line(parser, line);
+    return parser_parse_header_line(parser, &parser->partial_line);
 }
 
 /* Returns whether appending a run would exceed its current line limit. */
@@ -343,7 +318,7 @@ enum eunha_result parser_init(struct parser* parser) {
         return EUNHA_ERROR;
     }
 
-    if (string_init(&parser->partial_line) == EUNHA_ERROR) {
+    if (string_init(&parser->partial_line, "") == EUNHA_ERROR) {
         request_deinit(&parser->request);
         return EUNHA_ERROR;
     }

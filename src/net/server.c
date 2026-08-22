@@ -48,12 +48,12 @@
 #define SERVER_RECEIVE_TIMEOUT_SECONDS 5
 #define SERVER_REQUEST_TIMEOUT_SECONDS 15
 
-static const char server_ok_response[] = "HTTP/1.1 200 OK\r\n"
-                                         "Content-Type: text/plain\r\n"
-                                         "Content-Length: 2\r\n"
-                                         "Connection: close\r\n"
-                                         "\r\n"
-                                         "OK";
+static const char server_ok_response[] =
+    "HTTP/1.1 200 OK\r\n" HTTP_HEADER_CONTENT_TYPE
+    ": text/plain\r\n" HTTP_HEADER_CONTENT_LENGTH ": 2\r\n"
+    "Connection: close\r\n"
+    "\r\n"
+    "OK";
 
 /*
  * Closes socket_fd and reports close failures without hiding the caller error.

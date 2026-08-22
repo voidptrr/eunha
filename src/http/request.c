@@ -30,7 +30,7 @@
 enum eunha_result request_init(struct request* request) {
     assert(request != NULL);
 
-    if (string_init(&request->target) == EUNHA_ERROR) {
+    if (string_init(&request->target, "") == EUNHA_ERROR) {
         return EUNHA_ERROR;
     }
 
@@ -39,7 +39,7 @@ enum eunha_result request_init(struct request* request) {
         return EUNHA_ERROR;
     }
 
-    if (string_init(&request->body) == EUNHA_ERROR) {
+    if (string_init(&request->body, "") == EUNHA_ERROR) {
         headers_deinit(&request->headers);
         string_deinit(&request->target);
         return EUNHA_ERROR;

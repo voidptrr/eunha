@@ -33,7 +33,6 @@ SOURCE_DIR := src
 SOURCES := \
 	$(SOURCE_DIR)/main.c \
 	$(SOURCE_DIR)/config.c \
-	$(SOURCE_DIR)/utils.c \
 	$(SOURCE_DIR)/net/server.c \
 	$(SOURCE_DIR)/http/parser.c \
 	$(SOURCE_DIR)/http/header.c \

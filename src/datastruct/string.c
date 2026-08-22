@@ -24,6 +24,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -67,7 +68,7 @@ static enum eunha_result string_reserve(
     }
 
     /* realloc leaves the original allocation owned by string on failure. */
-    uint8_t* next_data = realloc(string->data, next_capacity + 1);
+    char* next_data = realloc(string->data, next_capacity + 1);
     if (next_data == NULL) {
         return EUNHA_ERROR;
     }
@@ -86,21 +87,48 @@ static void string_reset(struct string* string) {
     string->capacity = 0;
 }
 
-/*
- * Initializes an empty owned string.
- */
-enum eunha_result string_init(struct string* string) {
-    assert(string != NULL);
+/* Releases storage for public cleanup and internal ownership rollback. */
+static void string_release(struct string* string) {
+    free(string->data);
+    string_reset(string);
+}
 
-    string->data = malloc(STRING_DEFAULT_CAPACITY + 1);
+/*
+ * Initializes an owned string from a range that may contain embedded NULs.
+ */
+static enum eunha_result string_init_range(
+    struct string* string, const char* data, size_t length) {
+    assert(string != NULL);
+    assert(data != NULL || length == 0);
+
+    size_t capacity =
+        length > STRING_DEFAULT_CAPACITY ? length : STRING_DEFAULT_CAPACITY;
+    if (capacity == SIZE_MAX) {
+        errno = ENOMEM;
+        return EUNHA_ERROR;
+    }
+
+    string->data = malloc(capacity + 1);
     if (string->data == NULL) {
         return EUNHA_ERROR;
     }
 
-    string->data[0] = 0;
-    string->length = 0;
-    string->capacity = STRING_DEFAULT_CAPACITY;
+    if (length != 0) {
+        memcpy(string->data, data, length);
+    }
+
+    string->data[length] = 0;
+    string->length = length;
+    string->capacity = capacity;
     return EUNHA_OK;
+}
+
+/* Initializes an owned string by copying a C string. */
+enum eunha_result string_init(struct string* string, const char* initial) {
+    assert(string != NULL);
+    assert(initial != NULL);
+
+    return string_init_range(string, initial, strlen(initial));
 }
 
 /*
@@ -145,16 +173,136 @@ enum eunha_result string_append(
     return EUNHA_OK;
 }
 
-/*
- * Replaces current contents with length bytes copied from data.
- */
-enum eunha_result string_set(
-    struct string* string, const uint8_t* data, size_t length) {
-    assert(string != NULL);
-    assert(data != NULL || length == 0);
+/* Transfers source storage into an initialized destination. */
+void string_move(struct string* destination, struct string* source) {
+    assert(destination != NULL);
+    assert(source != NULL);
+    assert(destination != source);
 
-    string_clear(string);
-    return string_append(string, data, length);
+    string_release(destination);
+    *destination = *source;
+    string_reset(source);
+}
+
+/* Compares length before bytes so embedded NULs cannot truncate a match. */
+bool string_equals(const struct string* string, const char* expected) {
+    assert(string != NULL);
+    assert(string->data != NULL);
+    assert(expected != NULL);
+
+    size_t expected_length = strlen(expected);
+    return string->length == expected_length &&
+           memcmp(string->data, expected, expected_length) == 0;
+}
+
+/* Removes optional horizontal whitespace while preserving owned storage. */
+void string_trim(struct string* string) {
+    assert(string != NULL);
+    assert(string->data != NULL);
+
+    size_t start = 0;
+    size_t end = string->length;
+
+    while (start < end &&
+           (string->data[start] == ' ' || string->data[start] == '\t')) {
+        start += 1;
+    }
+
+    while (end > start &&
+           (string->data[end - 1] == ' ' || string->data[end - 1] == '\t')) {
+        end -= 1;
+    }
+
+    size_t trimmed_length = end - start;
+    if (start != 0 && trimmed_length != 0) {
+        memmove(string->data, string->data + start, trimmed_length);
+    }
+
+    string->length = trimmed_length;
+    string->data[trimmed_length] = 0;
+}
+
+/* Splits into owned strings so callers never manage borrowed byte slices. */
+enum eunha_result string_split_once(
+    const struct string* string, char delimiter, struct string_split* split) {
+    assert(string != NULL);
+    assert(string->data != NULL);
+    assert(split != NULL);
+
+    *split = (struct string_split){0};
+    const char* match = memchr(string->data, delimiter, string->length);
+
+    if (match == NULL) {
+        if (string_init_range(&split->values[0], string->data,
+                string->length) == EUNHA_ERROR) {
+            return EUNHA_ERROR;
+        }
+
+        split->length = 1;
+        return EUNHA_OK;
+    }
+
+    size_t first_length = (size_t)(match - string->data);
+    size_t second_length = string->length - first_length - 1;
+
+    if (string_init_range(&split->values[0], string->data, first_length) ==
+        EUNHA_ERROR) {
+        return EUNHA_ERROR;
+    }
+
+    if (string_init_range(&split->values[1], match + 1, second_length) ==
+        EUNHA_ERROR) {
+        string_release(&split->values[0]);
+        return EUNHA_ERROR;
+    }
+
+    split->length = 2;
+    return EUNHA_OK;
+}
+
+/* Releases both fixed slots so partially initialized results are also safe. */
+void string_split_deinit(struct string_split* split) {
+    assert(split != NULL);
+
+    string_release(&split->values[1]);
+    string_release(&split->values[0]);
+    split->length = 0;
+}
+
+/* Parses decimal digits while reserving SIZE_MAX as the error sentinel. */
+size_t string_parse_size(const struct string* string) {
+    assert(string != NULL);
+    assert(string->data != NULL);
+
+    if (string->length == 0) {
+        errno = EINVAL;
+        return SIZE_MAX;
+    }
+
+    size_t parsed = 0;
+
+    for (size_t index = 0; index < string->length; index += 1) {
+        char byte = string->data[index];
+        if (byte < '0' || byte > '9') {
+            errno = EINVAL;
+            return SIZE_MAX;
+        }
+
+        size_t digit = (size_t)(byte - '0');
+        if (parsed > (SIZE_MAX - digit) / 10) {
+            errno = EOVERFLOW;
+            return SIZE_MAX;
+        }
+
+        parsed = (parsed * 10) + digit;
+    }
+
+    if (parsed == SIZE_MAX) {
+        errno = EOVERFLOW;
+        return SIZE_MAX;
+    }
+
+    return parsed;
 }
 
 /*
@@ -163,6 +311,5 @@ enum eunha_result string_set(
 void string_deinit(struct string* string) {
     assert(string != NULL);
 
-    free(string->data);
-    string_reset(string);
+    string_release(string);
 }
