@@ -25,14 +25,19 @@
 #ifndef EUNHA_PARSER_H
 #define EUNHA_PARSER_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-#include "utils.h"
+#include "datastruct/string.h"
+#include "http/request.h"
 
-/*
- * Current section of an HTTP request being parsed.
- */
+#define REQUEST_MAX_START_LINE_LENGTH 8192
+#define REQUEST_MAX_HEADER_LINE_LENGTH 8192
+#define REQUEST_MAX_HEADERS_LENGTH 32768
+#define REQUEST_MAX_BODY_LENGTH 1048576
+
+/* Current section of an HTTP request being parsed. */
 enum parser_state {
     PARSER_START_LINE,
     PARSER_HEADERS,
@@ -41,31 +46,36 @@ enum parser_state {
     PARSER_INVALID,
 };
 
-/*
- * Stateful cursor that resumes parsing as more request bytes arrive.
- */
-struct parser {
-    enum parser_state state;
-    size_t position;
-    size_t scan_position;
-    size_t header_length;
+/* Result of feeding one new chunk of request bytes to the parser. */
+enum parser_status {
+    PARSER_STATUS_INVALID,
+    PARSER_STATUS_INCOMPLETE,
+    PARSER_STATUS_COMPLETE,
 };
 
 /*
- * Initializes a parser at the beginning of a request.
+ * Stateful HTTP/1.x parser. It owns the request and only retains an unfinished
+ * line between parser_feed calls.
  */
-struct parser parser_init(void);
+struct parser {
+    enum parser_state state;
+    struct request request;
+    struct string line;
+    size_t headers_length;
+    size_t content_length;
+    bool saw_carriage_return;
+};
+
+/* Initializes an HTTP parser and its request storage. */
+int parser_init(struct parser* parser);
 
 /*
- * Adjusts parser offsets after the caller removes consumed leading bytes.
+ * Advances parsing with newly received bytes; previous chunks are not needed.
  */
-void parser_discard(struct parser* parser, size_t length);
-
-/*
- * Reads and consumes one CRLF-terminated line. Returns an empty pointer and
- * EAGAIN when more bytes are needed, or EINVAL for malformed line endings.
- */
-struct buffer parser_read_line(
+enum parser_status parser_feed(
     struct parser* parser, const uint8_t* data, size_t length);
+
+/* Releases the parser line and parsed request. */
+void parser_deinit(struct parser* parser);
 
 #endif

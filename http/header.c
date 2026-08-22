@@ -31,69 +31,7 @@
 #include "http/header.h"
 #include "utils.h"
 
-/*
- * Header fields retained by the request representation.
- */
-enum header_type {
-    HEADER_CUSTOM,
-    HEADER_AUTHORIZATION,
-    HEADER_CONTENT_LENGTH,
-    HEADER_CONTENT_TYPE,
-    HEADER_HOST,
-    HEADER_TRANSFER_ENCODING,
-};
-
-struct header_entry {
-    const char* name;
-    enum header_type type;
-};
-
-struct content_type_entry {
-    const char* name;
-    enum content_type type;
-};
-
-static const struct header_entry header_entries[] = {
-    {
-        .name = "authorization",
-        .type = HEADER_AUTHORIZATION,
-    },
-    {
-        .name = "content-length",
-        .type = HEADER_CONTENT_LENGTH,
-    },
-    {
-        .name = "content-type",
-        .type = HEADER_CONTENT_TYPE,
-    },
-    {
-        .name = "host",
-        .type = HEADER_HOST,
-    },
-    {
-        .name = "transfer-encoding",
-        .type = HEADER_TRANSFER_ENCODING,
-    },
-};
-
-static const struct content_type_entry content_type_entries[] = {
-    {
-        .name = "application/x-www-form-urlencoded",
-        .type = CONTENT_TYPE_APPLICATION_FORM_URLENCODED,
-    },
-    {
-        .name = "application/json",
-        .type = CONTENT_TYPE_APPLICATION_JSON,
-    },
-    {
-        .name = "text/plain",
-        .type = CONTENT_TYPE_TEXT_PLAIN,
-    },
-};
-
-/*
- * Returns whether every field-name byte belongs to the HTTP token grammar.
- */
+/* Returns whether every field-name byte belongs to the HTTP token grammar. */
 static bool header_name_is_valid(struct buffer name) {
     for (size_t index = 0; index < name.length; index += 1) {
         uint8_t byte = name.data[index];
@@ -128,9 +66,7 @@ static bool header_name_is_valid(struct buffer name) {
     return name.length > 0;
 }
 
-/*
- * Rejects control bytes that are not permitted inside a field value.
- */
+/* Rejects control bytes that are not permitted inside a field value. */
 static bool header_value_is_valid(struct buffer value) {
     for (size_t index = 0; index < value.length; index += 1) {
         uint8_t byte = value.data[index];
@@ -143,160 +79,116 @@ static bool header_value_is_valid(struct buffer value) {
     return true;
 }
 
-/*
- * Initializes header-owned storage.
- */
+/* Converts a stored field name to its canonical lowercase ASCII form. */
+static void header_lowercase_name(struct string* name) {
+    for (size_t index = 0; index < name->length; index += 1) {
+        if (name->data[index] >= 'A' && name->data[index] <= 'Z') {
+            name->data[index] = (uint8_t)(name->data[index] + ('a' - 'A'));
+        }
+    }
+}
+
+/* Initializes an empty header collection. */
 int headers_init(struct headers* headers) {
     assert(headers != NULL);
 
-    if (string_init(&headers->host) == -1) {
-        return -1;
-    }
-
-    if (string_init(&headers->authorization) == -1) {
-        string_deinit(&headers->host);
-        return -1;
-    }
-
-    headers_clear(headers);
-    return 0;
+    return vector_init(&headers->values, sizeof(struct header));
 }
 
-/*
- * Clears parsed header values while keeping allocations reusable.
- */
-void headers_clear(struct headers* headers) {
-    assert(headers != NULL);
-
-    string_clear(&headers->host);
-    string_clear(&headers->authorization);
-    headers->content_type = CONTENT_TYPE_NONE;
-    headers->content_length = 0;
-    headers->has_host = false;
-    headers->has_authorization = false;
-    headers->has_content_type = false;
-    headers->has_content_length = false;
-}
-
-/*
- * Parses one header line and stores fields retained by the request.
- */
-int headers_parse_line(
+/* Parses, owns, and appends one name/value header pair. */
+int headers_append(
     struct headers* headers, const uint8_t* data, size_t length) {
     assert(headers != NULL);
     assert(data != NULL || length == 0);
 
-    struct buffer line = {
-        .data = data,
-        .length = length,
-    };
-    struct buffer_split field = split_once(line, ':');
-
+    struct buffer_split field = split_once((struct buffer){data, length}, ':');
     if (field.after.data == NULL || !header_name_is_valid(field.before) ||
         !header_value_is_valid(field.after)) {
         errno = EINVAL;
         return -1;
     }
 
-    struct buffer name = field.before;
     struct buffer value = trim_whitespace(field.after);
+    struct header header;
 
-    enum header_type type = HEADER_CUSTOM;
-    for (size_t index = 0;
-        index < sizeof(header_entries) / sizeof(header_entries[0]);
-        index += 1) {
-        if (buffer_equals_case_insensitive(name, header_entries[index].name)) {
-            type = header_entries[index].type;
-            break;
-        }
-    }
-
-    switch (type) {
-    case HEADER_HOST:
-        if (headers->has_host || value.length == 0) {
-            errno = EINVAL;
-            return -1;
-        }
-
-        if (string_set(&headers->host, value.data, value.length) == -1) {
-            return -1;
-        }
-
-        headers->has_host = true;
-        return 0;
-    case HEADER_AUTHORIZATION:
-        if (headers->has_authorization) {
-            errno = EINVAL;
-            return -1;
-        }
-
-        if (string_set(&headers->authorization, value.data, value.length) ==
-            -1) {
-            return -1;
-        }
-
-        headers->has_authorization = true;
-        return 0;
-    case HEADER_CONTENT_LENGTH: {
-        if (headers->has_content_length) {
-            errno = EINVAL;
-            return -1;
-        }
-
-        size_t content_length = buffer_to_digit(value);
-        if (content_length == SIZE_MAX) {
-            return -1;
-        }
-
-        headers->content_length = content_length;
-        headers->has_content_length = true;
-        return 0;
-    }
-    case HEADER_CONTENT_TYPE: {
-        if (headers->has_content_type) {
-            errno = EINVAL;
-            return -1;
-        }
-
-        struct buffer_split content_type = split_once(value, ';');
-        struct buffer media_type = trim_whitespace(content_type.before);
-
-        headers->content_type = CONTENT_TYPE_CUSTOM;
-        for (size_t index = 0; index < sizeof(content_type_entries) /
-                                           sizeof(content_type_entries[0]);
-            index += 1) {
-            if (buffer_equals_case_insensitive(
-                    media_type, content_type_entries[index].name)) {
-                headers->content_type = content_type_entries[index].type;
-                break;
-            }
-        }
-
-        headers->has_content_type = true;
-        return 0;
-    }
-    case HEADER_TRANSFER_ENCODING:
-        errno = EINVAL;
+    if (string_init(&header.name) == -1) {
         return -1;
-    case HEADER_CUSTOM:
-        return 0;
+    }
+
+    if (string_init(&header.value) == -1) {
+        string_deinit(&header.name);
+        return -1;
+    }
+
+    if (string_set(&header.name, field.before.data, field.before.length) ==
+            -1 ||
+        string_set(&header.value, value.data, value.length) == -1) {
+        string_deinit(&header.value);
+        string_deinit(&header.name);
+        return -1;
+    }
+
+    header_lowercase_name(&header.name);
+
+    if (vector_append(&headers->values, &header) == -1) {
+        string_deinit(&header.value);
+        string_deinit(&header.name);
+        return -1;
     }
 
     return 0;
 }
 
-/*
- * Releases header-owned storage.
- */
+/* Returns each stored header in wire order. */
+const struct header* header_next(struct header_iterator* iterator) {
+    assert(iterator != NULL);
+    assert(iterator->headers != NULL);
+
+    if (iterator->index >= vector_len(&iterator->headers->values)) {
+        return NULL;
+    }
+
+    const struct header* values = iterator->headers->values.data;
+    const struct header* header = &values[iterator->index];
+    iterator->index += 1;
+    return header;
+}
+
+/* Finds the first header with the requested case-insensitive name. */
+const struct header* headers_get(
+    const struct headers* headers, const char* name) {
+    assert(headers != NULL);
+    assert(name != NULL);
+
+    struct header_iterator iterator = {
+        .headers = headers,
+        .index = 0,
+    };
+    const struct header* header = NULL;
+
+    while ((header = header_next(&iterator)) != NULL) {
+        struct buffer stored_name = {
+            .data = header->name.data,
+            .length = header->name.length,
+        };
+
+        if (buffer_equals_case_insensitive(stored_name, name)) {
+            return header;
+        }
+    }
+
+    return NULL;
+}
+
+/* Releases each name/value pair before releasing the vector. */
 void headers_deinit(struct headers* headers) {
     assert(headers != NULL);
 
-    string_deinit(&headers->authorization);
-    string_deinit(&headers->host);
-    headers->content_type = CONTENT_TYPE_NONE;
-    headers->content_length = 0;
-    headers->has_host = false;
-    headers->has_authorization = false;
-    headers->has_content_type = false;
-    headers->has_content_length = false;
+    for (size_t index = 0; index < vector_len(&headers->values); index += 1) {
+        struct header* header = vector_get(&headers->values, index);
+        string_deinit(&header->value);
+        string_deinit(&header->name);
+    }
+
+    vector_deinit(&headers->values);
 }

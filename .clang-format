@@ -22,6 +22,7 @@
 
 BasedOnStyle: LLVM
 AlignAfterOpenBracket: DontAlign
+AllowShortFunctionsOnASingleLine: None
 BinPackArguments: true
 BinPackParameters: BinPack
 IncludeBlocks: Regroup

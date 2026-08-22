@@ -22,19 +22,8 @@
  * SOFTWARE.
  */
 
-#include <stdio.h>
-
 #include "config.h"
-#include "http/request.h"
-#include "http/server.h"
-
-/*
- * Temporary request handler used while the HTTP layer is still being built.
- */
-static void print_request(const struct request* request) {
-    fwrite(request->body.data, 1, request->body.length, stdout);
-    fflush(stdout);
-}
+#include "net/server.h"
 
 /*
  * Loads configuration and starts the blocking server loop.
@@ -42,5 +31,5 @@ static void print_request(const struct request* request) {
 int main(void) {
     struct config config = load_config();
 
-    return server_listen(config.port, print_request) == -1 ? 1 : 0;
+    return server_listen(config.port) == -1 ? 1 : 0;
 }

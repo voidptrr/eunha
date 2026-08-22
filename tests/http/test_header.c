@@ -23,200 +23,111 @@
  */
 
 #include <assert.h>
-#include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
 
+#include "datastruct/vector.h"
 #include "http/header.h"
 
-/*
- * Verifies an owned string matches a string literal.
- */
-static void assert_string_equals(
-    const struct string* string, const char* expected) {
-    size_t expected_length = strlen(expected);
-
-    assert(string->length == expected_length);
-    assert(memcmp(string->data, expected, expected_length) == 0);
-}
-
-/*
- * Parses a string literal as one header line.
- */
-static int parse_header(struct headers* headers, const char* line) {
-    return headers_parse_line(headers, (const uint8_t*)line, strlen(line));
-}
-
-/*
- * Verifies known headers are promoted into direct fields.
- */
-static int test_headers_parse_line(void) {
+/* Verifies empty collection initialization and cleanup. */
+static int test_headers_init(void) {
     struct headers headers;
 
     assert(headers_init(&headers) == 0);
-    assert(parse_header(&headers, "Host: example.test") == 0);
-    assert(parse_header(&headers, "Authorization: Bearer token") == 0);
-    assert(parse_header(&headers, "Content-Type: application/json") == 0);
-    assert(parse_header(&headers, "Content-Length: 7") == 0);
-    assert(parse_header(&headers, "X-Eunha: custom") == 0);
+    assert(vector_len(&headers.values) == 0);
+    headers_deinit(&headers);
+    return 0;
+}
 
-    assert_string_equals(&headers.host, "example.test");
-    assert_string_equals(&headers.authorization, "Bearer token");
-    assert(headers.content_type == CONTENT_TYPE_APPLICATION_JSON);
-    assert(headers.content_length == 7);
-    assert(headers.has_host);
-    assert(headers.has_authorization);
-    assert(headers.has_content_type);
-    assert(headers.has_content_length);
+/* Verifies generic fields are normalized, trimmed, and searchable. */
+static int test_headers_append(void) {
+    struct headers headers;
+    const char host[] = "Host:\t example.test  ";
+    const char custom[] = "X-Request-ID: abc-123";
+    const char empty[] = "X-Empty:";
+
+    assert(headers_init(&headers) == 0);
+    assert(headers_append(&headers, (const uint8_t*)host, strlen(host)) == 0);
+    assert(
+        headers_append(&headers, (const uint8_t*)custom, strlen(custom)) == 0);
+    assert(headers_append(&headers, (const uint8_t*)empty, strlen(empty)) == 0);
+    assert(vector_len(&headers.values) == 3);
+
+    const struct header* header = headers_get(&headers, "HOST");
+    assert(header != NULL);
+    assert(strcmp((const char*)header->name.data, "host") == 0);
+    assert(strcmp((const char*)header->value.data, "example.test") == 0);
+
+    header = headers_get(&headers, "x-request-id");
+    assert(header != NULL);
+    assert(strcmp((const char*)header->value.data, "abc-123") == 0);
+
+    header = headers_get(&headers, "x-empty");
+    assert(header != NULL);
+    assert(header->value.length == 0);
+    assert(headers_get(&headers, "missing") == NULL);
 
     headers_deinit(&headers);
     return 0;
 }
 
-/*
- * Verifies header names are case-insensitive and values trim HTTP whitespace.
- */
-static int test_headers_parse_line_whitespace(void) {
+/* Verifies the iterator yields every field in wire order. */
+static int test_header_iterator(void) {
+    const char first[] = "X-First: one";
+    const char second[] = "X-Second: two";
     struct headers headers;
 
     assert(headers_init(&headers) == 0);
-    assert(parse_header(&headers, "host:\t example.test \t") == 0);
-    assert(parse_header(&headers, "content-length: \t7 ") == 0);
+    assert(headers_append(&headers, (const uint8_t*)first, strlen(first)) == 0);
+    assert(
+        headers_append(&headers, (const uint8_t*)second, strlen(second)) == 0);
 
-    assert_string_equals(&headers.host, "example.test");
-    assert(headers.content_length == 7);
+    struct header_iterator iterator = {
+        .headers = &headers,
+        .index = 0,
+    };
+    const struct header* header = header_next(&iterator);
+    assert(header != NULL);
+    assert(strcmp((const char*)header->name.data, "x-first") == 0);
+
+    header = header_next(&iterator);
+    assert(header != NULL);
+    assert(strcmp((const char*)header->name.data, "x-second") == 0);
+    assert(header_next(&iterator) == NULL);
 
     headers_deinit(&headers);
     return 0;
 }
 
-/*
- * Verifies malformed header lines and lengths are rejected.
- */
-static int test_headers_parse_line_errors(void) {
+/* Verifies syntax errors do not append partial fields. */
+static int test_invalid_headers(void) {
+    static const char* invalid[] = {
+        "Host example.test",
+        "Bad Name: value",
+        ": value",
+        "Name: bad\x01value",
+    };
     struct headers headers;
 
     assert(headers_init(&headers) == 0);
 
-    errno = 0;
-    assert(parse_header(&headers, "Host example.test") == -1);
-    assert(errno == EINVAL);
-
-    errno = 0;
-    assert(parse_header(&headers, ": value") == -1);
-    assert(errno == EINVAL);
-
-    errno = 0;
-    assert(parse_header(&headers, "Content-Length: nope") == -1);
-    assert(errno == EINVAL);
-
-    errno = 0;
-    assert(parse_header(&headers, "Host : example.test") == -1);
-    assert(errno == EINVAL);
-
-    errno = 0;
-    assert(parse_header(&headers, " folded: value") == -1);
-    assert(errno == EINVAL);
+    for (size_t index = 0; index < sizeof(invalid) / sizeof(invalid[0]);
+        index += 1) {
+        assert(headers_append(&headers, (const uint8_t*)invalid[index],
+                   strlen(invalid[index])) == -1);
+        assert(vector_len(&headers.values) == 0);
+    }
 
     headers_deinit(&headers);
     return 0;
 }
 
-/*
- * Verifies ambiguous framing and duplicate singleton headers are rejected.
- */
-static int test_headers_reject_ambiguous_fields(void) {
-    struct headers headers;
-
-    assert(headers_init(&headers) == 0);
-
-    assert(parse_header(&headers, "Content-Length: 3") == 0);
-    errno = 0;
-    assert(parse_header(&headers, "Content-Length: 3") == -1);
-    assert(errno == EINVAL);
-
-    headers_clear(&headers);
-    errno = 0;
-    assert(parse_header(&headers, "Transfer-Encoding: chunked") == -1);
-    assert(errno == EINVAL);
-
-    headers_clear(&headers);
-    assert(parse_header(&headers, "Host: first.test") == 0);
-    errno = 0;
-    assert(parse_header(&headers, "Host: second.test") == -1);
-    assert(errno == EINVAL);
-
-    headers_clear(&headers);
-    assert(parse_header(&headers, "Authorization: first") == 0);
-    errno = 0;
-    assert(parse_header(&headers, "Authorization: second") == -1);
-    assert(errno == EINVAL);
-
-    headers_clear(&headers);
-    assert(parse_header(&headers, "Content-Type: application/json") == 0);
-    errno = 0;
-    assert(parse_header(&headers, "Content-Type: text/plain") == -1);
-    assert(errno == EINVAL);
-
-    headers_deinit(&headers);
-    return 0;
-}
-
-/*
- * Verifies control bytes are rejected inside field values.
- */
-static int test_headers_reject_control_bytes(void) {
-    const uint8_t line[] = {'X', '-', 'T', 'e', 's', 't', ':', ' ', 0x00};
-    struct headers headers;
-
-    assert(headers_init(&headers) == 0);
-    errno = 0;
-    assert(headers_parse_line(&headers, line, sizeof(line)) == -1);
-    assert(errno == EINVAL);
-
-    headers_deinit(&headers);
-    return 0;
-}
-
-/*
- * Verifies Content-Type parameters do not affect media type classification.
- */
-static int test_headers_content_type(void) {
-    struct headers headers;
-
-    assert(headers_init(&headers) == 0);
-
-    assert(parse_header(
-               &headers, "Content-Type: application/json; charset=utf-8") == 0);
-    assert(headers.content_type == CONTENT_TYPE_APPLICATION_JSON);
-
-    headers_clear(&headers);
-    assert(parse_header(&headers,
-               "Content-Type: application/x-www-form-urlencoded") == 0);
-    assert(headers.content_type == CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
-
-    headers_clear(&headers);
-    assert(parse_header(&headers, "Content-Type: text/plain") == 0);
-    assert(headers.content_type == CONTENT_TYPE_TEXT_PLAIN);
-
-    headers_clear(&headers);
-    assert(parse_header(&headers, "Content-Type: application/eunha") == 0);
-    assert(headers.content_type == CONTENT_TYPE_CUSTOM);
-
-    headers_deinit(&headers);
-    return 0;
-}
-
-/*
- * Runs single-header parsing tests.
- */
+/* Runs generic header collection tests. */
 int main(void) {
-    assert(test_headers_parse_line() == 0);
-    assert(test_headers_parse_line_whitespace() == 0);
-    assert(test_headers_parse_line_errors() == 0);
-    assert(test_headers_reject_ambiguous_fields() == 0);
-    assert(test_headers_reject_control_bytes() == 0);
-    assert(test_headers_content_type() == 0);
+    assert(test_headers_init() == 0);
+    assert(test_headers_append() == 0);
+    assert(test_header_iterator() == 0);
+    assert(test_invalid_headers() == 0);
     return 0;
 }

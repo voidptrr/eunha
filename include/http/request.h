@@ -25,22 +25,10 @@
 #ifndef EUNHA_REQUEST_H
 #define EUNHA_REQUEST_H
 
-#include <stddef.h>
-#include <stdint.h>
-
 #include "datastruct/string.h"
 #include "http/header.h"
 
-struct parser;
-
-#define REQUEST_MAX_START_LINE_LENGTH 8192
-#define REQUEST_MAX_HEADER_LINE_LENGTH 8192
-#define REQUEST_MAX_HEADERS_LENGTH 32768
-#define REQUEST_MAX_BODY_LENGTH 1048576
-
-/*
- * HTTP methods recognized by the parser.
- */
+/* HTTP methods currently recognized by the parser. */
 enum request_method {
     UNKNOWN,
     GET,
@@ -50,9 +38,7 @@ enum request_method {
     DELETE,
 };
 
-/*
- * HTTP versions accepted by request parsing.
- */
+/* HTTP versions currently accepted by the parser. */
 enum request_version {
     HTTP_VERSION_UNKNOWN,
     HTTP_1_0,
@@ -60,17 +46,8 @@ enum request_version {
 };
 
 /*
- * Result of advancing a request parser over currently available bytes.
- */
-enum request_parse_status {
-    REQUEST_INVALID,
-    REQUEST_INCOMPLETE,
-    REQUEST_COMPLETE,
-};
-
-/*
- * Owns one parsed HTTP request. Textual fields are copied only after their
- * complete octet sequences have arrived.
+ * Owns one parsed HTTP request. Strings are null-terminated for application
+ * code, while their explicit lengths remain authoritative for raw body data.
  */
 struct request {
     enum request_method method;
@@ -80,21 +57,10 @@ struct request {
     struct string body;
 };
 
-/*
- * Initializes storage owned by a request.
- */
+/* Initializes storage owned by a request. */
 int request_init(struct request* request);
 
-/*
- * Advances parsing from parser.position using all bytes currently available.
- * Request fields retain parsed data when more bytes are still needed.
- */
-enum request_parse_status request_parse(struct parser* parser,
-    struct request* request, const uint8_t* data, size_t length);
-
-/*
- * Releases request-owned storage.
- */
+/* Releases request-owned storage. */
 void request_deinit(struct request* request);
 
 #endif

@@ -52,14 +52,14 @@ $(BUILD_DIR)/test_utils: test_utils.c $(PROJECT_ROOT)/utils.c
 	mkdir -p $(@D)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@
 
-$(BUILD_DIR)/test_header: http/test_header.c $(PROJECT_ROOT)/http/header.c $(PROJECT_ROOT)/datastruct/string.c $(PROJECT_ROOT)/utils.c
+$(BUILD_DIR)/test_header: http/test_header.c $(PROJECT_ROOT)/http/header.c $(PROJECT_ROOT)/datastruct/string.c $(PROJECT_ROOT)/datastruct/vector.c $(PROJECT_ROOT)/utils.c
 	mkdir -p $(@D)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@
 
-$(BUILD_DIR)/test_parser_core: http/parser/test_core.c $(PROJECT_ROOT)/http/parser.c
+$(BUILD_DIR)/test_parser_core: http/parser/test_core.c $(PROJECT_ROOT)/http/parser.c $(PROJECT_ROOT)/http/request.c $(PROJECT_ROOT)/http/header.c $(PROJECT_ROOT)/datastruct/string.c $(PROJECT_ROOT)/datastruct/vector.c $(PROJECT_ROOT)/utils.c
 	mkdir -p $(@D)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@
 
-$(BUILD_DIR)/test_request: http/test_request.c $(PROJECT_ROOT)/http/request.c $(PROJECT_ROOT)/http/header.c $(PROJECT_ROOT)/http/parser.c $(PROJECT_ROOT)/datastruct/string.c $(PROJECT_ROOT)/utils.c
+$(BUILD_DIR)/test_request: http/test_request.c $(PROJECT_ROOT)/http/request.c $(PROJECT_ROOT)/http/header.c $(PROJECT_ROOT)/http/parser.c $(PROJECT_ROOT)/datastruct/string.c $(PROJECT_ROOT)/datastruct/vector.c $(PROJECT_ROOT)/utils.c
 	mkdir -p $(@D)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@

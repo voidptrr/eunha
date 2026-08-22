@@ -89,7 +89,9 @@ bool buffer_equals_case_insensitive(
 /*
  * Returns whether byte is horizontal whitespace: space or tab.
  */
-bool is_whitespace(uint8_t byte) { return byte == ' ' || byte == '\t'; }
+bool is_whitespace(uint8_t byte) {
+    return byte == ' ' || byte == '\t';
+}
 
 /*
  * Trims horizontal whitespace from both ends of a byte slice.

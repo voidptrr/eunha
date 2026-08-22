@@ -4,7 +4,8 @@
 
 - `main.c` contains process startup.
 - `config.c` contains defaults and environment configuration.
-- `http/` contains networking and HTTP implementation code.
+- `http/` contains HTTP protocol parsing and request implementation code.
+- `net/` contains socket and server implementation code.
 - `datastruct/` contains internal generic data structure implementations.
 - `include/` contains headers, grouped by the same subsystem directories as
   their implementations.
@@ -26,5 +27,9 @@
 - Put internal `static` functions at the top of `.c` files, then define public functions in the same order as the matching header.
 - Prefer returning small values and structs directly from value-producing functions.
 - Use pointer parameters for mutation, ownership, and allocation-backed lifecycle operations.
+- Prefer direct control flow, early returns, and simple cursor loops over
+  bookkeeping-heavy helper logic.
+- Keep function bodies on multiple lines unless a one-line definition is
+  necessary for the surrounding construct.
 - Prefer `#define` for simple compile-time constants.
 - Keep the build simple and Makefile-driven.

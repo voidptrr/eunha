@@ -29,7 +29,7 @@ CC_BASENAME := $(notdir $(CC))
 ESCAPED_RESOLVED_CC := $(subst /,\/,$(RESOLVED_CC))
 
 TARGET := $(BUILD_DIR)/eunha
-SOURCES := main.c config.c utils.c http/server.c http/parser.c http/header.c http/request.c datastruct/string.c datastruct/vector.c
+SOURCES := main.c config.c utils.c net/server.c http/parser.c http/header.c http/request.c datastruct/string.c datastruct/vector.c
 OBJECTS := $(SOURCES:%.c=$(BUILD_DIR)/%.o)
 DEPENDENCIES := $(OBJECTS:.o=.d)
 

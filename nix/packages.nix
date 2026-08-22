@@ -35,6 +35,7 @@
         ../http
         ../include
         ../main.c
+        ../net
         ../utils.c
       ];
     };

@@ -28,9 +28,10 @@
  */
 #define _POSIX_C_SOURCE 200112L
 
-#include <assert.h>
 #include <errno.h>
 #include <netdb.h>
+#include <signal.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -39,15 +40,20 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "datastruct/vector.h"
 #include "http/parser.h"
-#include "http/request.h"
-#include "http/server.h"
+#include "net/server.h"
 
 #define SERVER_BACKLOG 16
 #define SERVER_RECEIVE_BUFFER_SIZE 4096
 #define SERVER_RECEIVE_TIMEOUT_SECONDS 5
 #define SERVER_REQUEST_TIMEOUT_SECONDS 15
+
+static const char server_ok_response[] = "HTTP/1.1 200 OK\r\n"
+                                         "Content-Type: text/plain\r\n"
+                                         "Content-Length: 2\r\n"
+                                         "Connection: close\r\n"
+                                         "\r\n"
+                                         "OK";
 
 /*
  * Closes socket_fd and reports close failures without hiding the caller error.
@@ -72,6 +78,34 @@ static int server_set_receive_timeout(int socket_fd) {
 }
 
 /*
+ * Sends every response byte unless the connection fails.
+ */
+static bool server_send_all(int socket_fd, const void* data, size_t length) {
+    const uint8_t* bytes = data;
+
+    while (length > 0) {
+        ssize_t sent = send(socket_fd, bytes, length, 0);
+        if (sent > 0) {
+            bytes += (size_t)sent;
+            length -= (size_t)sent;
+            continue;
+        }
+
+        if (sent == -1 && errno == EINTR) {
+            continue;
+        }
+
+        if (sent == 0) {
+            errno = EPIPE;
+        }
+
+        return false;
+    }
+
+    return true;
+}
+
+/*
  * Rejects clients that keep a request open beyond the total deadline.
  */
 static int server_check_request_deadline(time_t started) {
@@ -87,26 +121,6 @@ static int server_check_request_deadline(time_t started) {
     }
 
     return 0;
-}
-
-/*
- * Removes bytes already copied into request-owned fields.
- */
-static void server_discard_consumed_data(
-    struct vector* data, struct parser* parser) {
-    assert(data != NULL);
-    assert(parser != NULL);
-    assert(parser->position <= vector_len(data));
-
-    size_t consumed = parser->position;
-    if (consumed == 0) {
-        return;
-    }
-
-    size_t remaining = vector_len(data) - consumed;
-    memmove(data->data, (uint8_t*)data->data + consumed, remaining);
-    data->length = remaining;
-    parser_discard(parser, consumed);
 }
 
 /* Opens, binds, and starts listening on one resolved address. */
@@ -174,8 +188,7 @@ static int server_open_socket(const char* service) {
 /*
  * Reads until HTTP framing says one complete request has arrived.
  */
-static int server_receive_request(int client_fd, struct vector* data,
-    struct parser* parser, struct request* request) {
+static int server_receive_request(int client_fd, struct parser* parser) {
     uint8_t buffer[SERVER_RECEIVE_BUFFER_SIZE];
     time_t started = time(NULL);
 
@@ -199,25 +212,18 @@ static int server_receive_request(int client_fd, struct vector* data,
                 return -1;
             }
 
-            if (vector_extend(data, buffer, (size_t)bytes_received) == -1) {
-                perror("vector_extend");
-                return -1;
-            }
+            enum parser_status status =
+                parser_feed(parser, buffer, (size_t)bytes_received);
 
-            enum request_parse_status status =
-                request_parse(parser, request, data->data, vector_len(data));
-
-            if (status == REQUEST_COMPLETE) {
-                server_discard_consumed_data(data, parser);
+            if (status == PARSER_STATUS_COMPLETE) {
                 return 0;
             }
 
-            if (status == REQUEST_INVALID) {
-                perror("request_parse");
+            if (status == PARSER_STATUS_INVALID) {
+                perror("parser_feed");
                 return -1;
             }
 
-            server_discard_consumed_data(data, parser);
             continue;
         }
 
@@ -241,10 +247,8 @@ static int server_receive_request(int client_fd, struct vector* data,
 }
 
 /* Owns one accepted connection from read through close. */
-static void server_handle_client(int client_fd, server_callback cb) {
-    struct parser parser = parser_init();
-    struct vector data;
-    struct request parsed_request;
+static void server_handle_client(int client_fd) {
+    struct parser parser;
 
     if (server_set_receive_timeout(client_fd) == -1) {
         perror("setsockopt");
@@ -252,34 +256,32 @@ static void server_handle_client(int client_fd, server_callback cb) {
         return;
     }
 
-    if (vector_init(&data, sizeof(uint8_t)) == -1) {
-        perror("vector_init");
+    if (parser_init(&parser) == -1) {
+        perror("parser_init");
         server_close_socket(client_fd);
         return;
     }
 
-    if (request_init(&parsed_request) == -1) {
-        perror("request_init");
-        vector_deinit(&data);
-        server_close_socket(client_fd);
-        return;
-    }
-
-    if (server_receive_request(client_fd, &data, &parser, &parsed_request) ==
-        0) {
-        cb(&parsed_request);
+    if (server_receive_request(client_fd, &parser) == 0) {
+        if (!server_send_all(client_fd, server_ok_response,
+                sizeof(server_ok_response) - 1)) {
+            perror("send");
+        }
     }
 
     server_close_socket(client_fd);
-
-    request_deinit(&parsed_request);
-    vector_deinit(&data);
+    parser_deinit(&parser);
 }
 
 /*
  * Opens the listening socket and handles clients one at a time.
  */
-int server_listen(const char* service, server_callback cb) {
+int server_listen(const char* service) {
+    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
+        perror("signal");
+        return -1;
+    }
+
     int socket_fd = server_open_socket(service);
     if (socket_fd == -1) {
         return -1;
@@ -300,6 +302,6 @@ int server_listen(const char* service, server_callback cb) {
             return -1;
         }
 
-        server_handle_client(client_fd, cb);
+        server_handle_client(client_fd);
     }
 }

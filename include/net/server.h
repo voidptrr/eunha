@@ -25,16 +25,9 @@
 #ifndef EUNHA_SERVER_H
 #define EUNHA_SERVER_H
 
-struct request;
-
-/*
- * Called once after one complete HTTP request has been parsed.
- */
-typedef void (*server_callback)(const struct request* request);
-
 /*
  * Starts the blocking, single-threaded HTTP listener.
  */
-int server_listen(const char* service, server_callback cb);
+int server_listen(const char* service);
 
 #endif

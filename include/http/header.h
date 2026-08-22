@@ -25,56 +25,50 @@
 #ifndef EUNHA_HEADER_H
 #define EUNHA_HEADER_H
 
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
 #include "datastruct/string.h"
+#include "datastruct/vector.h"
 
 /*
- * Content-Type media types this server handles directly.
+ * One HTTP field. Names are stored in lowercase and values have surrounding
+ * optional whitespace removed.
  */
-enum content_type {
-    CONTENT_TYPE_NONE,
-    CONTENT_TYPE_CUSTOM,
-    CONTENT_TYPE_APPLICATION_FORM_URLENCODED,
-    CONTENT_TYPE_APPLICATION_JSON,
-    CONTENT_TYPE_TEXT_PLAIN,
+struct header {
+    struct string name;
+    struct string value;
 };
 
 /*
- * Known request headers promoted into direct fields.
+ * Ordered collection of every header received in a request.
  */
 struct headers {
-    struct string host;
-    struct string authorization;
-    enum content_type content_type;
-    size_t content_length;
-    bool has_host;
-    bool has_authorization;
-    bool has_content_type;
-    bool has_content_length;
+    struct vector values;
 };
 
 /*
- * Initializes storage owned by the header collection.
+ * Cursor used to visit headers in wire order.
  */
+struct header_iterator {
+    const struct headers* headers;
+    size_t index;
+};
+
+/* Initializes an empty header collection. */
 int headers_init(struct headers* headers);
 
-/*
- * Clears parsed header values while keeping allocations reusable.
- */
-void headers_clear(struct headers* headers);
+/* Parses and appends one header line without its trailing CRLF. */
+int headers_append(struct headers* headers, const uint8_t* data, size_t length);
 
-/*
- * Parses one header line without its trailing CRLF.
- */
-int headers_parse_line(
-    struct headers* headers, const uint8_t* data, size_t length);
+/* Returns the next header, or NULL after the final header. */
+const struct header* header_next(struct header_iterator* iterator);
 
-/*
- * Releases header-owned storage.
- */
+/* Returns the first header matching name with ASCII case ignored. */
+const struct header* headers_get(
+    const struct headers* headers, const char* name);
+
+/* Releases every header and the collection storage. */
 void headers_deinit(struct headers* headers);
 
 #endif
