@@ -27,6 +27,8 @@
 
 #include <stddef.h>
 
+#include "eunha.h"
+
 /*
  * Generic contiguous storage. The vector owns data and stores length/capacity
  * in elements, not bytes.
@@ -41,7 +43,7 @@ struct vector {
 /*
  * Initializes a vector for elements of item_size bytes.
  */
-int vector_init(struct vector* vector, size_t item_size);
+enum eunha_result vector_init(struct vector* vector, size_t item_size);
 
 /*
  * Returns the number of elements stored in vector.
@@ -55,15 +57,16 @@ size_t vector_len(const struct vector* vector);
 void* vector_get(struct vector* vector, size_t index);
 
 /*
+ * Appends count elements by copying count * item_size bytes from items.
+ */
+enum eunha_result vector_extend(
+    struct vector* vector, const void* items, size_t count);
+
+/*
  * Appends one element by copying item_size bytes from item. Pointers returned
  * by vector_get are invalidated after a growing append.
  */
-int vector_append(struct vector* vector, const void* item);
-
-/*
- * Appends count elements by copying count * item_size bytes from items.
- */
-int vector_extend(struct vector* vector, const void* items, size_t count);
+enum eunha_result vector_append(struct vector* vector, const void* item);
 
 /*
  * Releases vector storage and resets the struct to an empty state.

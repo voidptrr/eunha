@@ -188,20 +188,22 @@ static int server_open_socket(const char* service) {
 /*
  * Reads until HTTP framing says one complete request has arrived.
  */
-static int server_receive_request(int client_fd, struct parser* parser) {
+static enum eunha_result server_receive_request(
+    int client_fd, struct parser* parser) {
     uint8_t buffer[SERVER_RECEIVE_BUFFER_SIZE];
     time_t started = time(NULL);
+    enum parser_status status = PARSER_STATUS_INCOMPLETE;
 
     if (started == (time_t)-1) {
         errno = EIO;
         perror("time");
-        return -1;
+        return EUNHA_ERROR;
     }
 
-    for (;;) {
+    while (status == PARSER_STATUS_INCOMPLETE) {
         if (server_check_request_deadline(started) == -1) {
             perror("request timeout");
-            return -1;
+            return EUNHA_ERROR;
         }
 
         ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer), 0);
@@ -209,28 +211,17 @@ static int server_receive_request(int client_fd, struct parser* parser) {
         if (bytes_received > 0) {
             if (server_check_request_deadline(started) == -1) {
                 perror("request timeout");
-                return -1;
+                return EUNHA_ERROR;
             }
 
-            enum parser_status status =
-                parser_feed(parser, buffer, (size_t)bytes_received);
-
-            if (status == PARSER_STATUS_COMPLETE) {
-                return 0;
-            }
-
-            if (status == PARSER_STATUS_INVALID) {
-                perror("parser_feed");
-                return -1;
-            }
-
+            status = parser_feed(parser, buffer, (size_t)bytes_received);
             continue;
         }
 
         if (bytes_received == 0) {
             fprintf(stderr, "connection closed before complete request\n");
             errno = EINVAL;
-            return -1;
+            return EUNHA_ERROR;
         }
 
         if (errno == EINTR) {
@@ -242,8 +233,15 @@ static int server_receive_request(int client_fd, struct parser* parser) {
         }
 
         perror("recv");
-        return -1;
+        return EUNHA_ERROR;
     }
+
+    if (status == PARSER_STATUS_COMPLETE) {
+        return EUNHA_OK;
+    }
+
+    perror("parser_feed");
+    return EUNHA_ERROR;
 }
 
 /* Owns one accepted connection from read through close. */
@@ -256,13 +254,13 @@ static void server_handle_client(int client_fd) {
         return;
     }
 
-    if (parser_init(&parser) == -1) {
+    if (parser_init(&parser) == EUNHA_ERROR) {
         perror("parser_init");
         server_close_socket(client_fd);
         return;
     }
 
-    if (server_receive_request(client_fd, &parser) == 0) {
+    if (server_receive_request(client_fd, &parser) == EUNHA_OK) {
         if (!server_send_all(client_fd, server_ok_response,
                 sizeof(server_ok_response) - 1)) {
             perror("send");

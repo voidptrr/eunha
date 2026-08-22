@@ -30,25 +30,22 @@
 
 /* HTTP methods currently recognized by the parser. */
 enum request_method {
-    UNKNOWN,
-    GET,
-    POST,
-    PUT,
-    PATCH,
-    DELETE,
+    REQUEST_METHOD_UNKNOWN,
+    REQUEST_METHOD_GET,
+    REQUEST_METHOD_POST,
+    REQUEST_METHOD_PUT,
+    REQUEST_METHOD_PATCH,
+    REQUEST_METHOD_DELETE,
 };
 
 /* HTTP versions currently accepted by the parser. */
 enum request_version {
     HTTP_VERSION_UNKNOWN,
-    HTTP_1_0,
-    HTTP_1_1,
+    HTTP_VERSION_1_0,
+    HTTP_VERSION_1_1,
 };
 
-/*
- * Owns one parsed HTTP request. Strings are null-terminated for application
- * code, while their explicit lengths remain authoritative for raw body data.
- */
+/* Parsed HTTP data whose allocation-backed fields are owned by the request. */
 struct request {
     enum request_method method;
     struct string target;
@@ -58,9 +55,9 @@ struct request {
 };
 
 /* Initializes storage owned by a request. */
-int request_init(struct request* request);
+enum eunha_result request_init(struct request* request);
 
-/* Releases request-owned storage. */
+/* Releases all request-owned storage. */
 void request_deinit(struct request* request);
 
 #endif

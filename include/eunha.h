@@ -22,32 +22,13 @@
  * SOFTWARE.
  */
 
-#include <assert.h>
+#ifndef EUNHA_H
+#define EUNHA_H
 
-#include "datastruct/vector.h"
-#include "eunha.h"
-#include "http/request.h"
+/* Common result for project-owned lifecycle and mutation operations. */
+enum eunha_result {
+    EUNHA_ERROR = -1,
+    EUNHA_OK = 0,
+};
 
-/* Verifies request storage contains only application-facing HTTP data. */
-static int test_request_lifecycle(void) {
-    struct request request;
-
-    assert(request_init(&request) == EUNHA_OK);
-    assert(request.method == REQUEST_METHOD_UNKNOWN);
-    assert(request.version == HTTP_VERSION_UNKNOWN);
-    assert(request.target.length == 0);
-    assert(request.body.length == 0);
-    assert(vector_len(&request.headers.fields) == 0);
-
-    request_deinit(&request);
-    assert(request.target.data == NULL);
-    assert(request.body.data == NULL);
-    assert(request.headers.fields.data == NULL);
-    return 0;
-}
-
-/* Runs request data ownership tests. */
-int main(void) {
-    assert(test_request_lifecycle() == 0);
-    return 0;
-}
+#endif

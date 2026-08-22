@@ -28,7 +28,7 @@ WARNINGS := -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Ws
 CFLAGS ?= -std=c17 $(WARNINGS)
 CPPFLAGS += -I$(PROJECT_ROOT)/include
 
-TEST_TARGETS := $(BUILD_DIR)/test_vector $(BUILD_DIR)/test_string $(BUILD_DIR)/test_utils $(BUILD_DIR)/test_header $(BUILD_DIR)/test_parser_core $(BUILD_DIR)/test_request
+TEST_TARGETS := $(BUILD_DIR)/test_vector $(BUILD_DIR)/test_string $(BUILD_DIR)/test_utils $(BUILD_DIR)/test_header $(BUILD_DIR)/test_request $(BUILD_DIR)/test_parser
 
 .PHONY: test
 
@@ -37,8 +37,8 @@ test: $(TEST_TARGETS)
 	$(BUILD_DIR)/test_string
 	$(BUILD_DIR)/test_utils
 	$(BUILD_DIR)/test_header
-	$(BUILD_DIR)/test_parser_core
 	$(BUILD_DIR)/test_request
+	$(BUILD_DIR)/test_parser
 
 $(BUILD_DIR)/test_vector: test_vector.c $(PROJECT_ROOT)/datastruct/vector.c
 	mkdir -p $(@D)
@@ -56,10 +56,10 @@ $(BUILD_DIR)/test_header: http/test_header.c $(PROJECT_ROOT)/http/header.c $(PRO
 	mkdir -p $(@D)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@
 
-$(BUILD_DIR)/test_parser_core: http/parser/test_core.c $(PROJECT_ROOT)/http/parser.c $(PROJECT_ROOT)/http/request.c $(PROJECT_ROOT)/http/header.c $(PROJECT_ROOT)/datastruct/string.c $(PROJECT_ROOT)/datastruct/vector.c $(PROJECT_ROOT)/utils.c
+$(BUILD_DIR)/test_request: http/test_request.c $(PROJECT_ROOT)/http/request.c $(PROJECT_ROOT)/http/header.c $(PROJECT_ROOT)/datastruct/string.c $(PROJECT_ROOT)/datastruct/vector.c $(PROJECT_ROOT)/utils.c
 	mkdir -p $(@D)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@
 
-$(BUILD_DIR)/test_request: http/test_request.c $(PROJECT_ROOT)/http/request.c $(PROJECT_ROOT)/http/header.c $(PROJECT_ROOT)/http/parser.c $(PROJECT_ROOT)/datastruct/string.c $(PROJECT_ROOT)/datastruct/vector.c $(PROJECT_ROOT)/utils.c
+$(BUILD_DIR)/test_parser: http/test_parser.c $(PROJECT_ROOT)/http/parser.c $(PROJECT_ROOT)/http/request.c $(PROJECT_ROOT)/http/header.c $(PROJECT_ROOT)/datastruct/string.c $(PROJECT_ROOT)/datastruct/vector.c $(PROJECT_ROOT)/utils.c
 	mkdir -p $(@D)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@
+	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -Wl,--wrap=malloc -Wl,--wrap=realloc -o $@

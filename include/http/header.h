@@ -32,8 +32,8 @@
 #include "datastruct/vector.h"
 
 /*
- * One HTTP field. Names are stored in lowercase and values have surrounding
- * optional whitespace removed.
+ * One owned HTTP field. Names retain their original spelling and values have
+ * surrounding optional whitespace removed.
  */
 struct header {
     struct string name;
@@ -44,7 +44,7 @@ struct header {
  * Ordered collection of every header received in a request.
  */
 struct headers {
-    struct vector values;
+    struct vector fields;
 };
 
 /*
@@ -56,13 +56,14 @@ struct header_iterator {
 };
 
 /* Initializes an empty header collection. */
-int headers_init(struct headers* headers);
+enum eunha_result headers_init(struct headers* headers);
 
-/* Parses and appends one header line without its trailing CRLF. */
-int headers_append(struct headers* headers, const uint8_t* data, size_t length);
+/* Parses and stores one header line without its trailing CRLF. */
+enum eunha_result headers_parse_line(
+    struct headers* headers, const uint8_t* data, size_t length);
 
 /* Returns the next header, or NULL after the final header. */
-const struct header* header_next(struct header_iterator* iterator);
+const struct header* header_iterator_next(struct header_iterator* iterator);
 
 /* Returns the first header matching name with ASCII case ignored. */
 const struct header* headers_get(

@@ -41,6 +41,7 @@ static bool header_name_is_valid(struct buffer name) {
             continue;
         }
 
+        /* These punctuation bytes complete HTTP's permitted token alphabet. */
         switch (byte) {
         case '!':
         case '#':
@@ -71,6 +72,7 @@ static bool header_value_is_valid(struct buffer value) {
     for (size_t index = 0; index < value.length; index += 1) {
         uint8_t byte = value.data[index];
 
+        /* HTAB is allowed, but other C0 controls and DEL are not. */
         if ((byte < 0x20 && byte != '\t') || byte == 0x7F) {
             return false;
         }
@@ -79,82 +81,79 @@ static bool header_value_is_valid(struct buffer value) {
     return true;
 }
 
-/* Converts a stored field name to its canonical lowercase ASCII form. */
-static void header_lowercase_name(struct string* name) {
-    for (size_t index = 0; index < name->length; index += 1) {
-        if (name->data[index] >= 'A' && name->data[index] <= 'Z') {
-            name->data[index] = (uint8_t)(name->data[index] + ('a' - 'A'));
-        }
-    }
+/* Releases all storage owned by one field. */
+static void header_deinit(struct header* header) {
+    string_deinit(&header->value);
+    string_deinit(&header->name);
 }
 
 /* Initializes an empty header collection. */
-int headers_init(struct headers* headers) {
+enum eunha_result headers_init(struct headers* headers) {
     assert(headers != NULL);
 
-    return vector_init(&headers->values, sizeof(struct header));
+    return vector_init(&headers->fields, sizeof(struct header));
 }
 
-/* Parses, owns, and appends one name/value header pair. */
-int headers_append(
+/* Parses and stores one owned name/value field. */
+enum eunha_result headers_parse_line(
     struct headers* headers, const uint8_t* data, size_t length) {
     assert(headers != NULL);
     assert(data != NULL || length == 0);
 
     struct buffer_split field = split_once((struct buffer){data, length}, ':');
+    /* A field needs a colon, a non-empty token name, and a safe raw value. */
     if (field.after.data == NULL || !header_name_is_valid(field.before) ||
         !header_value_is_valid(field.after)) {
         errno = EINVAL;
-        return -1;
+        return EUNHA_ERROR;
     }
 
+    /* Optional whitespace is syntax around the value, not part of its data. */
     struct buffer value = trim_whitespace(field.after);
-    struct header header;
+    struct header header = {0};
 
-    if (string_init(&header.name) == -1) {
-        return -1;
+    if (string_init(&header.name) == EUNHA_ERROR) {
+        return EUNHA_ERROR;
     }
 
-    if (string_init(&header.value) == -1) {
+    if (string_init(&header.value) == EUNHA_ERROR) {
+        /* The name was initialized first and remains owned on this path. */
         string_deinit(&header.name);
-        return -1;
+        return EUNHA_ERROR;
     }
 
     if (string_set(&header.name, field.before.data, field.before.length) ==
-            -1 ||
-        string_set(&header.value, value.data, value.length) == -1) {
-        string_deinit(&header.value);
-        string_deinit(&header.name);
-        return -1;
+            EUNHA_ERROR ||
+        string_set(&header.value, value.data, value.length) == EUNHA_ERROR) {
+        header_deinit(&header);
+        return EUNHA_ERROR;
     }
 
-    header_lowercase_name(&header.name);
-
-    if (vector_append(&headers->values, &header) == -1) {
-        string_deinit(&header.value);
-        string_deinit(&header.name);
-        return -1;
+    if (vector_append(&headers->fields, &header) == EUNHA_ERROR) {
+        /* Ownership transfers to the vector only after the copy succeeds. */
+        header_deinit(&header);
+        return EUNHA_ERROR;
     }
 
-    return 0;
+    return EUNHA_OK;
 }
 
 /* Returns each stored header in wire order. */
-const struct header* header_next(struct header_iterator* iterator) {
+const struct header* header_iterator_next(struct header_iterator* iterator) {
     assert(iterator != NULL);
     assert(iterator->headers != NULL);
 
-    if (iterator->index >= vector_len(&iterator->headers->values)) {
+    if (iterator->index >= vector_len(&iterator->headers->fields)) {
         return NULL;
     }
 
-    const struct header* values = iterator->headers->values.data;
-    const struct header* header = &values[iterator->index];
+    const struct header* fields = iterator->headers->fields.data;
+    const struct header* header = &fields[iterator->index];
     iterator->index += 1;
     return header;
 }
 
-/* Finds the first header with the requested case-insensitive name. */
+/* Finds the first field with the requested case-insensitive name. */
 const struct header* headers_get(
     const struct headers* headers, const char* name) {
     assert(headers != NULL);
@@ -166,7 +165,7 @@ const struct header* headers_get(
     };
     const struct header* header = NULL;
 
-    while ((header = header_next(&iterator)) != NULL) {
+    while ((header = header_iterator_next(&iterator)) != NULL) {
         struct buffer stored_name = {
             .data = header->name.data,
             .length = header->name.length,
@@ -180,15 +179,14 @@ const struct header* headers_get(
     return NULL;
 }
 
-/* Releases each name/value pair before releasing the vector. */
+/* Releases each nested field before releasing the vector. */
 void headers_deinit(struct headers* headers) {
     assert(headers != NULL);
 
-    for (size_t index = 0; index < vector_len(&headers->values); index += 1) {
-        struct header* header = vector_get(&headers->values, index);
-        string_deinit(&header->value);
-        string_deinit(&header->name);
+    for (size_t index = 0; index < vector_len(&headers->fields); index += 1) {
+        struct header* header = vector_get(&headers->fields, index);
+        header_deinit(header);
     }
 
-    vector_deinit(&headers->values);
+    vector_deinit(&headers->fields);
 }

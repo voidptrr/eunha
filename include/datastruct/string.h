@@ -28,6 +28,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "eunha.h"
+
 /*
  * Owned byte string. data is always NUL-terminated for convenience, but length
  * is authoritative and data may contain non-text bytes before the terminator.
@@ -41,7 +43,7 @@ struct string {
 /*
  * Initializes an empty string with owned storage.
  */
-int string_init(struct string* string);
+enum eunha_result string_init(struct string* string);
 
 /*
  * Removes current contents without releasing storage.
@@ -49,14 +51,16 @@ int string_init(struct string* string);
 void string_clear(struct string* string);
 
 /*
- * Replaces current contents with length bytes copied from data.
- */
-int string_set(struct string* string, const uint8_t* data, size_t length);
-
-/*
  * Appends length bytes copied from data.
  */
-int string_append(struct string* string, const uint8_t* data, size_t length);
+enum eunha_result string_append(
+    struct string* string, const uint8_t* data, size_t length);
+
+/*
+ * Replaces current contents with length bytes copied from data.
+ */
+enum eunha_result string_set(
+    struct string* string, const uint8_t* data, size_t length);
 
 /*
  * Releases owned storage and resets fields.

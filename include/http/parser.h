@@ -34,48 +34,51 @@
 
 #define REQUEST_MAX_START_LINE_LENGTH 8192
 #define REQUEST_MAX_HEADER_LINE_LENGTH 8192
-#define REQUEST_MAX_HEADERS_LENGTH 32768
+#define REQUEST_MAX_HEADER_SECTION_LENGTH 32768
 #define REQUEST_MAX_BODY_LENGTH 1048576
 
-/* Current section of an HTTP request being parsed. */
+/* Current phase or terminal state of an incremental request parse. */
 enum parser_state {
-    PARSER_START_LINE,
-    PARSER_HEADERS,
-    PARSER_BODY,
-    PARSER_COMPLETE,
-    PARSER_INVALID,
+    PARSER_STATE_START_LINE,
+    PARSER_STATE_HEADERS,
+    PARSER_STATE_BODY,
+    PARSER_STATE_COMPLETE,
+    PARSER_STATE_INVALID,
+    PARSER_STATE_ERROR,
 };
 
-/* Result of feeding one new chunk of request bytes to the parser. */
+/* Result of feeding one new chunk to the parser. */
 enum parser_status {
-    PARSER_STATUS_INVALID,
     PARSER_STATUS_INCOMPLETE,
     PARSER_STATUS_COMPLETE,
+    PARSER_STATUS_INVALID,
+    PARSER_STATUS_ERROR,
 };
 
 /*
- * Stateful HTTP/1.x parser. It owns the request and only retains an unfinished
- * line between parser_feed calls.
+ * Owns one request and the temporary state required to parse it incrementally.
+ * Only an unfinished line is retained from the wire representation.
  */
 struct parser {
-    enum parser_state state;
     struct request request;
-    struct string line;
-    size_t headers_length;
-    size_t content_length;
-    bool saw_carriage_return;
+    enum parser_state state;
+    struct string partial_line;
+    size_t header_section_length;
+    size_t expected_body_length;
+    bool awaiting_line_feed;
 };
 
-/* Initializes an HTTP parser and its request storage. */
-int parser_init(struct parser* parser);
+/* Initializes an incremental parser and its owned request. */
+enum eunha_result parser_init(struct parser* parser);
 
-/*
- * Advances parsing with newly received bytes; previous chunks are not needed.
- */
+/* Advances parsing using only newly received bytes. */
 enum parser_status parser_feed(
     struct parser* parser, const uint8_t* data, size_t length);
 
-/* Releases the parser line and parsed request. */
+/* Returns the completed borrowed request, or NULL before completion. */
+const struct request* parser_get_request(const struct parser* parser);
+
+/* Releases temporary parsing storage and the owned request. */
 void parser_deinit(struct parser* parser);
 
 #endif

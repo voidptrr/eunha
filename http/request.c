@@ -27,36 +27,36 @@
 #include "http/request.h"
 
 /* Initializes request-owned strings and headers. */
-int request_init(struct request* request) {
+enum eunha_result request_init(struct request* request) {
     assert(request != NULL);
 
-    if (string_init(&request->target) == -1) {
-        return -1;
+    if (string_init(&request->target) == EUNHA_ERROR) {
+        return EUNHA_ERROR;
     }
 
-    if (headers_init(&request->headers) == -1) {
+    if (headers_init(&request->headers) == EUNHA_ERROR) {
         string_deinit(&request->target);
-        return -1;
+        return EUNHA_ERROR;
     }
 
-    if (string_init(&request->body) == -1) {
+    if (string_init(&request->body) == EUNHA_ERROR) {
         headers_deinit(&request->headers);
         string_deinit(&request->target);
-        return -1;
+        return EUNHA_ERROR;
     }
 
-    request->method = UNKNOWN;
+    request->method = REQUEST_METHOD_UNKNOWN;
     request->version = HTTP_VERSION_UNKNOWN;
-    return 0;
+    return EUNHA_OK;
 }
 
-/* Releases all storage owned by a request. */
+/* Releases request fields in reverse ownership order. */
 void request_deinit(struct request* request) {
     assert(request != NULL);
 
     string_deinit(&request->body);
     headers_deinit(&request->headers);
     string_deinit(&request->target);
-    request->method = UNKNOWN;
+    request->method = REQUEST_METHOD_UNKNOWN;
     request->version = HTTP_VERSION_UNKNOWN;
 }

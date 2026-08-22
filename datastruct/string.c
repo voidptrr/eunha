@@ -35,11 +35,12 @@
 /*
  * Grows storage to hold required_capacity bytes plus the trailing NUL byte.
  */
-static int string_reserve(struct string* string, size_t required_capacity) {
+static enum eunha_result string_reserve(
+    struct string* string, size_t required_capacity) {
     assert(string != NULL);
 
     if (required_capacity <= string->capacity) {
-        return 0;
+        return EUNHA_OK;
     }
 
     size_t next_capacity = STRING_DEFAULT_CAPACITY;
@@ -48,6 +49,9 @@ static int string_reserve(struct string* string, size_t required_capacity) {
     }
 
     while (next_capacity < required_capacity) {
+        /*
+         * Saturate at the requested size when another doubling could overflow.
+         */
         if (next_capacity > SIZE_MAX / 2) {
             next_capacity = required_capacity;
             break;
@@ -56,19 +60,21 @@ static int string_reserve(struct string* string, size_t required_capacity) {
         next_capacity *= 2;
     }
 
+    /* One additional byte must remain representable for the NUL terminator. */
     if (next_capacity == SIZE_MAX) {
         errno = ENOMEM;
-        return -1;
+        return EUNHA_ERROR;
     }
 
+    /* realloc leaves the original allocation owned by string on failure. */
     uint8_t* next_data = realloc(string->data, next_capacity + 1);
     if (next_data == NULL) {
-        return -1;
+        return EUNHA_ERROR;
     }
 
     string->data = next_data;
     string->capacity = next_capacity;
-    return 0;
+    return EUNHA_OK;
 }
 
 /*
@@ -83,18 +89,18 @@ static void string_reset(struct string* string) {
 /*
  * Initializes an empty owned string.
  */
-int string_init(struct string* string) {
+enum eunha_result string_init(struct string* string) {
     assert(string != NULL);
 
     string->data = malloc(STRING_DEFAULT_CAPACITY + 1);
     if (string->data == NULL) {
-        return -1;
+        return EUNHA_ERROR;
     }
 
     string->data[0] = 0;
     string->length = 0;
     string->capacity = STRING_DEFAULT_CAPACITY;
-    return 0;
+    return EUNHA_OK;
 }
 
 /*
@@ -109,42 +115,46 @@ void string_clear(struct string* string) {
 }
 
 /*
- * Replaces current contents with length bytes copied from data.
- */
-int string_set(struct string* string, const uint8_t* data, size_t length) {
-    assert(string != NULL);
-    assert(data != NULL || length == 0);
-
-    string_clear(string);
-    return string_append(string, data, length);
-}
-
-/*
  * Appends length bytes copied from data.
  */
-int string_append(struct string* string, const uint8_t* data, size_t length) {
+enum eunha_result string_append(
+    struct string* string, const uint8_t* data, size_t length) {
     assert(string != NULL);
     assert(string->data != NULL);
     assert(data != NULL || length == 0);
 
     if (length == 0) {
-        return 0;
+        return EUNHA_OK;
     }
 
+    /* Check the addition before calculating the required length. */
     if (length > SIZE_MAX - string->length) {
         errno = ENOMEM;
-        return -1;
+        return EUNHA_ERROR;
     }
 
     size_t next_length = string->length + length;
-    if (string_reserve(string, next_length) == -1) {
-        return -1;
+    if (string_reserve(string, next_length) == EUNHA_ERROR) {
+        return EUNHA_ERROR;
     }
 
     memcpy(string->data + string->length, data, length);
     string->length = next_length;
+    /* Preserve the C-string convenience invariant after every append. */
     string->data[string->length] = 0;
-    return 0;
+    return EUNHA_OK;
+}
+
+/*
+ * Replaces current contents with length bytes copied from data.
+ */
+enum eunha_result string_set(
+    struct string* string, const uint8_t* data, size_t length) {
+    assert(string != NULL);
+    assert(data != NULL || length == 0);
+
+    string_clear(string);
+    return string_append(string, data, length);
 }
 
 /*

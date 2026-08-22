@@ -36,14 +36,18 @@
  * Grows capacity geometrically while guarding the capacity * item_size
  * multiplication from overflow.
  */
-static int vector_grow(struct vector* vector) {
+static enum eunha_result vector_grow(struct vector* vector) {
     assert(vector != NULL);
     assert(vector->item_size != 0);
 
+    /*
+     * Capacities above this value cannot be converted safely into byte sizes.
+     */
     size_t max_capacity = SIZE_MAX / vector->item_size;
     size_t next_capacity = VECTOR_DEFAULT_CAPACITY;
 
     if (vector->capacity != 0) {
+        /* Saturate when doubling would exceed the largest safe capacity. */
         if (vector->capacity > max_capacity / 2) {
             next_capacity = max_capacity;
         } else {
@@ -51,19 +55,20 @@ static int vector_grow(struct vector* vector) {
         }
     }
 
+    /* No larger representable allocation means the vector cannot grow. */
     if (next_capacity <= vector->capacity || next_capacity > max_capacity) {
         errno = ENOMEM;
-        return -1;
+        return EUNHA_ERROR;
     }
 
     void* next_data = realloc(vector->data, next_capacity * vector->item_size);
     if (next_data == NULL) {
-        return -1;
+        return EUNHA_ERROR;
     }
 
     vector->data = next_data;
     vector->capacity = next_capacity;
-    return 0;
+    return EUNHA_OK;
 }
 
 /*
@@ -79,25 +84,26 @@ static void vector_reset(struct vector* vector) {
 /*
  * Allocates the initial backing storage for elements of item_size bytes.
  */
-int vector_init(struct vector* vector, size_t item_size) {
+enum eunha_result vector_init(struct vector* vector, size_t item_size) {
     assert(vector != NULL);
     assert(item_size != 0);
 
+    /* Validate element-to-byte conversion before the initial allocation. */
     if (VECTOR_DEFAULT_CAPACITY > SIZE_MAX / item_size) {
         errno = ENOMEM;
-        return -1;
+        return EUNHA_ERROR;
     }
 
     void* data = malloc(VECTOR_DEFAULT_CAPACITY * item_size);
     if (data == NULL) {
-        return -1;
+        return EUNHA_ERROR;
     }
 
     vector->data = data;
     vector->item_size = item_size;
     vector->length = 0;
     vector->capacity = VECTOR_DEFAULT_CAPACITY;
-    return 0;
+    return EUNHA_OK;
 }
 
 /*
@@ -120,47 +126,52 @@ void* vector_get(struct vector* vector, size_t index) {
 }
 
 /*
- * Appends a single element by reusing the bulk append path.
- */
-int vector_append(struct vector* vector, const void* item) {
-    assert(vector != NULL);
-    assert(vector->item_size != 0);
-    assert(item != NULL);
-
-    return vector_extend(vector, item, 1);
-}
-
-/*
  * Appends count contiguous elements, growing storage before copying.
  */
-int vector_extend(struct vector* vector, const void* items, size_t count) {
+enum eunha_result vector_extend(
+    struct vector* vector, const void* items, size_t count) {
     assert(vector != NULL);
     assert(vector->item_size != 0);
 
     if (count == 0) {
-        return 0;
+        return EUNHA_OK;
     }
 
     assert(items != NULL);
 
+    /* Check element-count addition before calculating the new length. */
     if (count > SIZE_MAX - vector->length) {
         errno = ENOMEM;
-        return -1;
+        return EUNHA_ERROR;
     }
 
     size_t required_length = vector->length + count;
 
     while (required_length > vector->capacity) {
-        if (vector_grow(vector) == -1) {
-            return -1;
+        if (vector_grow(vector) == EUNHA_ERROR) {
+            return EUNHA_ERROR;
         }
     }
 
+    /*
+     * Capacity guarantees both the destination offset and copy size are safe.
+     */
     uint8_t* next_item =
         (uint8_t*)vector->data + (vector->length * vector->item_size);
     memcpy(next_item, items, count * vector->item_size);
     vector->length = required_length;
-    return 0;
+    return EUNHA_OK;
+}
+
+/*
+ * Appends a single element by reusing the bulk append path.
+ */
+enum eunha_result vector_append(struct vector* vector, const void* item) {
+    assert(vector != NULL);
+    assert(vector->item_size != 0);
+    assert(item != NULL);
+
+    return vector_extend(vector, item, 1);
 }
 
 /*
