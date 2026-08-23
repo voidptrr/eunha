@@ -20,12 +20,44 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-mod name;
-mod value;
-mod map;
-mod iterator;
+mod method;
+mod version;
+mod builder;
 
-pub use iterator::HeaderMapIter;
-pub use map::HeaderMap;
-pub use name::{HeaderName, InvalidHeaderName};
-pub use value::{HeaderValue, InvalidHeaderValue};
+use crate::header::HeaderMap;
+
+pub use builder::{RequestBuildError, RequestBuilder};
+pub use method::Method;
+pub use version::Version;
+
+/// A complete, owned HTTP request.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Request {
+    method: Method,
+    target: String,
+    version: Version,
+    headers: HeaderMap,
+    body: Vec<u8>,
+}
+
+impl Request {
+    pub fn method(&self) -> &Method {
+        &self.method
+    }
+
+    pub fn target(&self) -> &str {
+        &self.target
+    }
+
+    pub const fn version(&self) -> Version {
+        self.version
+    }
+
+    pub const fn headers(&self) -> &HeaderMap {
+        &self.headers
+    }
+
+    pub fn body(&self) -> &[u8] {
+        &self.body
+    }
+}

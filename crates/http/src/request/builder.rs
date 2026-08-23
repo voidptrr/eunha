@@ -20,68 +20,32 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::header::{HeaderMap, HeaderName, HeaderValue};
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 
-/// An HTTP request method.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub enum Method {
-    Connect,
-    Delete,
-    Get,
-    Head,
-    Options,
-    Patch,
-    Post,
-    Put,
-    Trace,
-    /// A method not represented by a standard variant.
-    Other(String),
+use crate::header::{HeaderMap, HeaderName, HeaderValue};
+
+use super::{Method, Request, Version};
+
+/// Identifies a required request field that was not supplied to the builder.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RequestBuildError {
+    MissingMethod,
+    MissingTarget,
+    MissingVersion,
 }
 
-/// An HTTP protocol version supported by Eunha.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum Version {
-    Http10,
-    Http11,
-}
-
-/// A complete, owned HTTP request.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Request {
-    method: Method,
-    target: String,
-    version: Version,
-    headers: HeaderMap,
-    body: Vec<u8>,
-}
-
-impl Request {
-    pub fn builder() -> RequestBuilder {
-        RequestBuilder::default()
-    }
-
-    pub fn method(&self) -> &Method {
-        &self.method
-    }
-
-    pub fn target(&self) -> &str {
-        &self.target
-    }
-
-    pub const fn version(&self) -> Version {
-        self.version
-    }
-
-    pub const fn headers(&self) -> &HeaderMap {
-        &self.headers
-    }
-
-    pub fn body(&self) -> &[u8] {
-        &self.body
+impl Display for RequestBuildError {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::MissingMethod => formatter.write_str("request method is required"),
+            Self::MissingTarget => formatter.write_str("request target is required"),
+            Self::MissingVersion => formatter.write_str("request version is required"),
+        }
     }
 }
+
+impl Error for RequestBuildError {}
 
 /// Builds a request incrementally while keeping incomplete data unobservable.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -94,6 +58,10 @@ pub struct RequestBuilder {
 }
 
 impl RequestBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     pub fn method(&mut self, method: Method) -> &mut Self {
         self.method = Some(method);
         self
@@ -124,11 +92,6 @@ impl RequestBuilder {
         self
     }
 
-    pub fn extend_body(&mut self, bytes: impl AsRef<[u8]>) -> &mut Self {
-        self.body.extend_from_slice(bytes.as_ref());
-        self
-    }
-
     pub fn build(self) -> Result<Request, RequestBuildError> {
         let method = self.method.ok_or(RequestBuildError::MissingMethod)?;
         let target = self.target.ok_or(RequestBuildError::MissingTarget)?;
@@ -144,29 +107,9 @@ impl RequestBuilder {
     }
 }
 
-/// Identifies a required request field that was not supplied to the builder.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RequestBuildError {
-    MissingMethod,
-    MissingTarget,
-    MissingVersion,
-}
-
-impl Display for RequestBuildError {
-    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::MissingMethod => formatter.write_str("request method is required"),
-            Self::MissingTarget => formatter.write_str("request target is required"),
-            Self::MissingVersion => formatter.write_str("request version is required"),
-        }
-    }
-}
-
-impl Error for RequestBuildError {}
-
 #[cfg(test)]
 mod tests {
-    use super::{Method, Request, RequestBuildError, Version};
+    use super::{Method, RequestBuildError, RequestBuilder, Version};
     use crate::header::{HeaderMap, HeaderName, HeaderValue};
 
     fn header_name(value: &str) -> HeaderName {
@@ -177,8 +120,8 @@ mod tests {
         HeaderValue::try_from(value.as_bytes().to_vec()).expect("test header value should be valid")
     }
 
-    fn complete_builder() -> super::RequestBuilder {
-        let mut builder = Request::builder();
+    fn complete_builder() -> RequestBuilder {
+        let mut builder = RequestBuilder::new();
         builder
             .method(Method::Get)
             .target("/")
@@ -202,15 +145,15 @@ mod tests {
     #[test]
     fn reports_each_missing_required_field() {
         assert_eq!(
-            Request::builder().build(),
+            RequestBuilder::new().build(),
             Err(RequestBuildError::MissingMethod)
         );
 
-        let mut builder = Request::builder();
+        let mut builder = RequestBuilder::new();
         builder.method(Method::Get);
         assert_eq!(builder.build(), Err(RequestBuildError::MissingTarget));
 
-        let mut builder = Request::builder();
+        let mut builder = RequestBuilder::new();
         builder.method(Method::Get).target("/");
         assert_eq!(builder.build(), Err(RequestBuildError::MissingVersion));
     }
@@ -235,7 +178,7 @@ mod tests {
         let mut new_headers = HeaderMap::new();
         new_headers.upsert(header_name("New"), header_value("value"));
 
-        let mut builder = Request::builder();
+        let mut builder = RequestBuilder::new();
         builder
             .method(Method::Get)
             .method(Method::Put)
@@ -255,18 +198,6 @@ mod tests {
         assert!(request.headers().get(&header_name("Old")).is_none());
         assert!(request.headers().get(&header_name("New")).is_some());
         assert_eq!(request.body(), b"new");
-    }
-
-    #[test]
-    fn extends_a_binary_body() {
-        let mut builder = complete_builder();
-        builder
-            .body(vec![0, 1])
-            .extend_body([2, 0])
-            .extend_body([3]);
-        let request = builder.build().expect("complete request should build");
-
-        assert_eq!(request.body(), &[0, 1, 2, 0, 3]);
     }
 
     #[test]

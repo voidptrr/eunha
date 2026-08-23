@@ -22,3 +22,4 @@
 
 edition = "2021"
 newline_style = "Unix"
+reorder_modules = false

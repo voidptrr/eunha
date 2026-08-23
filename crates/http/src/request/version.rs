@@ -20,12 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-mod name;
-mod value;
-mod map;
-mod iterator;
-
-pub use iterator::HeaderMapIter;
-pub use map::HeaderMap;
-pub use name::{HeaderName, InvalidHeaderName};
-pub use value::{HeaderValue, InvalidHeaderValue};
+/// An HTTP protocol version supported by Eunha.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum Version {
+    Http10,
+    Http11,
+}
