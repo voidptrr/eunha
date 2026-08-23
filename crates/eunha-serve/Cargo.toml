@@ -20,21 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-[workspace]
-members = ["crates/eunha-cli", "crates/eunha-http", "crates/eunha-serve"]
-default-members = ["crates/eunha-cli", "crates/eunha-http", "crates/eunha-serve"]
-resolver = "3"
+[package]
+name = "eunha-serve"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
 
-[workspace.package]
-version = "0.1.0"
-edition = "2024"
-rust-version = "1.85"
-license = "MIT"
-repository = "https://github.com/voidptrr/eunha"
-
-[workspace.lints.rust]
-unsafe_code = "forbid"
-warnings = "deny"
-
-[workspace.lints.clippy]
-all = { level = "deny", priority = -1 }
+[lints]
+workspace = true

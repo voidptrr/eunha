@@ -20,14 +20,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+mod iterator;
+
 use std::collections::{HashMap, hash_map::Entry};
 
 use super::{HeaderName, HeaderValue};
 
+pub use iterator::HeaderMapIter;
+
 /// HTTP headers grouped by their validated, case-insensitive field name.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct HeaderMap {
-    pub(super) entries: HashMap<HeaderName, Vec<HeaderValue>>,
+    entries: HashMap<HeaderName, Vec<HeaderValue>>,
 }
 
 impl HeaderMap {

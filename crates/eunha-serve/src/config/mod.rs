@@ -20,12 +20,30 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-mod header;
-mod request;
-mod status_code;
+mod builder;
 
-pub use header::{
-    HeaderMap, HeaderMapIter, HeaderName, HeaderValue, InvalidHeaderName, InvalidHeaderValue,
-};
-pub use request::{Method, Request, RequestBuildError, RequestBuilder};
-pub use status_code::StatusCode;
+use std::net::{IpAddr, SocketAddr};
+
+pub use builder::{ServerConfigBuildError, ServerConfigBuilder};
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ServerConfig {
+    address: IpAddr,
+    port: u16,
+}
+
+impl ServerConfig {
+    pub const fn address(&self) -> IpAddr {
+        self.address
+    }
+
+    pub const fn port(&self) -> u16 {
+        self.port
+    }
+}
+
+impl From<&ServerConfig> for SocketAddr {
+    fn from(config: &ServerConfig) -> Self {
+        Self::new(config.address, config.port)
+    }
+}

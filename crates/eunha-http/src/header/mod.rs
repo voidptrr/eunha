@@ -23,9 +23,7 @@
 mod name;
 mod value;
 mod map;
-mod iterator;
 
-pub use iterator::HeaderMapIter;
-pub use map::HeaderMap;
+pub use map::{HeaderMap, HeaderMapIter};
 pub use name::{HeaderName, InvalidHeaderName};
 pub use value::{HeaderValue, InvalidHeaderValue};

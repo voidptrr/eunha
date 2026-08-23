@@ -22,7 +22,8 @@
 
 use std::collections::hash_map;
 
-use super::{HeaderMap, HeaderName, HeaderValue};
+use super::HeaderMap;
+use crate::header::{HeaderName, HeaderValue};
 
 /// A borrowed iterator over the entries in a [`HeaderMap`].
 pub struct HeaderMapIter<'a> {
