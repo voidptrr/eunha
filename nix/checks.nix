@@ -19,9 +19,30 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+{
+  perSystem = {
+    config,
+    craneLib,
+    eunhaCargoArtifacts,
+    eunhaCraneArgs,
+    ...
+  }: {
+    checks = {
+      eunha = config.packages.default;
 
-.cache
-.DS_Store
-.pre-commit-config.yaml
-result
-target/
+      eunha-clippy = craneLib.cargoClippy (eunhaCraneArgs
+        // {
+          cargoArtifacts = eunhaCargoArtifacts;
+        });
+
+      eunha-fmt = craneLib.cargoFmt {
+        inherit (eunhaCraneArgs) pname src;
+      };
+
+      eunha-test = craneLib.cargoTest (eunhaCraneArgs
+        // {
+          cargoArtifacts = eunhaCargoArtifacts;
+        });
+    };
+  };
+}

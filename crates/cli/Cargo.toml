@@ -20,20 +20,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-BasedOnStyle: LLVM
-AlignAfterOpenBracket: DontAlign
-AllowShortFunctionsOnASingleLine: None
-BinPackArguments: true
-BinPackParameters: BinPack
-IncludeBlocks: Regroup
-IncludeCategories:
-  - Regex: '^<.*>$'
-    Priority: 1
-  - Regex: '^".*"$'
-    Priority: 2
-IncludeIsMainRegex: 'a^'
-IndentWidth: 4
-PointerAlignment: Left
-SortIncludes: CaseSensitive
-TabWidth: 4
-UseTab: Never
+[package]
+name = "eunha-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "eunha"
+path = "src/main.rs"
+
+[lints]
+workspace = true

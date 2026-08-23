@@ -21,16 +21,16 @@
 # SOFTWARE.
 {inputs, ...}: let
   paths = [
-    ".clang-format"
-    ".clangd"
+    ".github/dependabot.yml"
+    "Cargo.lock"
+    "Cargo.toml"
     "**/*.nix"
-    "Makefile"
-    "bear.yaml"
+    "**/*.rs"
+    "**/Cargo.toml"
     "flake.lock"
+    "rustfmt.toml"
+    "rust-toolchain.toml"
     ".github/workflows/checks.yml"
-    "**/*.c"
-    "**/*.h"
-    "**/Makefile"
   ];
 in {
   imports = [

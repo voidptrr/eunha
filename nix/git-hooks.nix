@@ -22,19 +22,15 @@
 {inputs, ...}: {
   imports = [inputs.git-hooks.flakeModule];
 
-  perSystem = {pkgs, ...}: {
+  perSystem = {...}: {
     pre-commit = {
-      check.enable = true;
+      # Crane supplies the sandboxed checks with vendored Cargo dependencies.
+      check.enable = false;
       settings.hooks = {
         alejandra.enable = true;
-        clang-format.enable = true;
-        make-test = {
-          enable = true;
-          name = "make test";
-          entry = "${pkgs.gnumake}/bin/make CC=${pkgs.stdenv.cc}/bin/gcc test";
-          pass_filenames = false;
-          always_run = true;
-        };
+        cargo-check.enable = true;
+        clippy.enable = true;
+        rustfmt.enable = true;
       };
     };
   };

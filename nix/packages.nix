@@ -22,31 +22,18 @@
 {
   perSystem = {
     config,
+    craneLib,
+    eunhaCargoArtifacts,
+    eunhaCraneArgs,
     pkgs,
     ...
   }: let
-    src = pkgs.lib.fileset.toSource {
-      root = ../.;
-      fileset = pkgs.lib.fileset.unions [
-        ../LICENSE
-        ../Makefile
-        ../include
-        ../src
-      ];
-    };
+    eunha = craneLib.buildPackage (eunhaCraneArgs
+      // {
+        cargoArtifacts = eunhaCargoArtifacts;
+      });
   in {
-    packages.default = pkgs.stdenv.mkDerivation {
-      pname = "eunha";
-      version = "0.1.0";
-
-      inherit src;
-
-      installPhase = ''
-        runHook preInstall
-        make install prefix=$out
-        runHook postInstall
-      '';
-
+    packages.default = eunha.overrideAttrs {
       meta = with pkgs.lib; {
         homepage = "https://github.com/voidptrr/eunha";
         license = licenses.mit;
@@ -63,7 +50,7 @@
 
     apps.default = {
       type = "app";
-      program = config.packages.default;
+      program = "${config.packages.default}/bin/eunha";
       meta.description = "Run eunha";
     };
   };

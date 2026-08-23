@@ -19,9 +19,8 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-.cache
-.DS_Store
-.pre-commit-config.yaml
-result
-target/
+{
+  perSystem = {pkgs, ...}: {
+    formatter = pkgs.alejandra;
+  };
+}

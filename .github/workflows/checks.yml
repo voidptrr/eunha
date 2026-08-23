@@ -18,27 +18,27 @@ name: checks
 'on':
   pull_request:
     paths:
-    - .clang-format
-    - .clangd
+    - .github/dependabot.yml
+    - Cargo.lock
+    - Cargo.toml
     - '**/*.nix'
-    - Makefile
-    - bear.yaml
+    - '**/*.rs'
+    - '**/Cargo.toml'
     - flake.lock
+    - rustfmt.toml
+    - rust-toolchain.toml
     - .github/workflows/checks.yml
-    - '**/*.c'
-    - '**/*.h'
-    - '**/Makefile'
   push:
     branches:
     - main
     paths:
-    - .clang-format
-    - .clangd
+    - .github/dependabot.yml
+    - Cargo.lock
+    - Cargo.toml
     - '**/*.nix'
-    - Makefile
-    - bear.yaml
+    - '**/*.rs'
+    - '**/Cargo.toml'
     - flake.lock
+    - rustfmt.toml
+    - rust-toolchain.toml
     - .github/workflows/checks.yml
-    - '**/*.c'
-    - '**/*.h'
-    - '**/Makefile'

@@ -20,8 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-.cache
-.DS_Store
-.pre-commit-config.yaml
-result
-target/
+[toolchain]
+channel = "stable"
+profile = "minimal"
+components = ["clippy", "rust-src", "rustfmt"]

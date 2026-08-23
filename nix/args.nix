@@ -20,9 +20,37 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 {inputs, ...}: {
-  perSystem = {system, ...}: {
-    _module.args.pkgs = import inputs.nixpkgs {
+  perSystem = {system, ...}: let
+    pkgs = import inputs.nixpkgs {
       inherit system;
+      overlays = [(import inputs.rust-overlay)];
+    };
+
+    rustToolchain = pkgs.rust-bin.stable.latest.default.override {
+      extensions = [
+        "clippy"
+        "rust-src"
+        "rustfmt"
+        "rust-analyzer"
+      ];
+    };
+    craneLib = (inputs.crane.mkLib pkgs).overrideToolchain rustToolchain;
+    eunhaCraneArgs = {
+      pname = "eunha";
+      version = "0.1.0";
+      src = craneLib.cleanCargoSource ../.;
+      strictDeps = true;
+    };
+    eunhaCargoArtifacts = craneLib.buildDepsOnly eunhaCraneArgs;
+  in {
+    _module.args = {
+      inherit
+        craneLib
+        eunhaCargoArtifacts
+        eunhaCraneArgs
+        pkgs
+        rustToolchain
+        ;
     };
   };
 }

@@ -20,8 +20,5 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-schema: "4.0"
-duplicates:
-  match_on:
-    - file
-    - output
+edition = "2021"
+newline_style = "Unix"

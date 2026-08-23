@@ -23,14 +23,15 @@
   perSystem = {
     config,
     pkgs,
+    rustToolchain,
     ...
   }: {
     devShells.default = pkgs.mkShell {
       shellHook = config.pre-commit.installationScript;
       packages = with pkgs; [
-        bear
-        clang-tools
-        gnumake
+        rustToolchain
+        alejandra
+        pre-commit
       ];
     };
   };
