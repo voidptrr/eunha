@@ -23,15 +23,8 @@
 /// An HTTP request method.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Method {
-    Connect,
-    Delete,
     Get,
-    Head,
-    Options,
-    Patch,
     Post,
-    Put,
-    Trace,
-    /// A method not represented by a standard variant.
+    /// A syntactically valid method not currently implemented by Eunha.
     Other(String),
 }

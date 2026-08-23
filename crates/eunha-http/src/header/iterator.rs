@@ -37,10 +37,6 @@ impl<'a> Iterator for HeaderMapIter<'a> {
             .next()
             .map(|(name, values)| (name, values.as_slice()))
     }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        self.inner.size_hint()
-    }
 }
 
 impl<'a> IntoIterator for &'a HeaderMap {

@@ -21,21 +21,20 @@
 // SOFTWARE.
 
 mod method;
-mod version;
 mod builder;
 
 use crate::header::HeaderMap;
 
 pub use builder::{RequestBuildError, RequestBuilder};
 pub use method::Method;
-pub use version::Version;
 
 /// A complete, owned HTTP request.
+///
+/// The protocol version is omitted because Eunha currently accepts only HTTP/1.1.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Request {
     method: Method,
     target: String,
-    version: Version,
     headers: HeaderMap,
     body: Vec<u8>,
 }
@@ -47,10 +46,6 @@ impl Request {
 
     pub fn target(&self) -> &str {
         &self.target
-    }
-
-    pub const fn version(&self) -> Version {
-        self.version
     }
 
     pub const fn headers(&self) -> &HeaderMap {

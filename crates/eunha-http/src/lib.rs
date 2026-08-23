@@ -22,8 +22,10 @@
 
 pub mod header;
 pub mod request;
+pub mod status_code;
 
 pub use header::{
     HeaderMap, HeaderMapIter, HeaderName, HeaderValue, InvalidHeaderName, InvalidHeaderValue,
 };
-pub use request::{Method, Request, RequestBuildError, RequestBuilder, Version};
+pub use request::{Method, Request, RequestBuildError, RequestBuilder};
+pub use status_code::StatusCode;

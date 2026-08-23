@@ -25,14 +25,13 @@ use std::fmt::{self, Display, Formatter};
 
 use crate::header::{HeaderMap, HeaderName, HeaderValue};
 
-use super::{Method, Request, Version};
+use super::{Method, Request};
 
 /// Identifies a required request field that was not supplied to the builder.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RequestBuildError {
     MissingMethod,
     MissingTarget,
-    MissingVersion,
 }
 
 impl Display for RequestBuildError {
@@ -40,7 +39,6 @@ impl Display for RequestBuildError {
         match self {
             Self::MissingMethod => formatter.write_str("request method is required"),
             Self::MissingTarget => formatter.write_str("request target is required"),
-            Self::MissingVersion => formatter.write_str("request version is required"),
         }
     }
 }
@@ -52,7 +50,6 @@ impl Error for RequestBuildError {}
 pub struct RequestBuilder {
     method: Option<Method>,
     target: Option<String>,
-    version: Option<Version>,
     headers: HeaderMap,
     body: Vec<u8>,
 }
@@ -72,11 +69,6 @@ impl RequestBuilder {
         self
     }
 
-    pub fn version(&mut self, version: Version) -> &mut Self {
-        self.version = Some(version);
-        self
-    }
-
     pub fn headers(&mut self, headers: HeaderMap) -> &mut Self {
         self.headers = headers;
         self
@@ -93,14 +85,9 @@ impl RequestBuilder {
     }
 
     pub fn build(self) -> Result<Request, RequestBuildError> {
-        let method = self.method.ok_or(RequestBuildError::MissingMethod)?;
-        let target = self.target.ok_or(RequestBuildError::MissingTarget)?;
-        let version = self.version.ok_or(RequestBuildError::MissingVersion)?;
-
         Ok(Request {
-            method,
-            target,
-            version,
+            method: self.method.ok_or(RequestBuildError::MissingMethod)?,
+            target: self.target.ok_or(RequestBuildError::MissingTarget)?,
             headers: self.headers,
             body: self.body,
         })
@@ -109,7 +96,7 @@ impl RequestBuilder {
 
 #[cfg(test)]
 mod tests {
-    use super::{Method, RequestBuildError, RequestBuilder, Version};
+    use super::{Method, RequestBuildError, RequestBuilder};
     use crate::header::{HeaderMap, HeaderName, HeaderValue};
 
     fn header_name(value: &str) -> HeaderName {
@@ -122,10 +109,7 @@ mod tests {
 
     fn complete_builder() -> RequestBuilder {
         let mut builder = RequestBuilder::new();
-        builder
-            .method(Method::Get)
-            .target("/")
-            .version(Version::Http11);
+        builder.method(Method::Get).target("/");
         builder
     }
 
@@ -152,10 +136,6 @@ mod tests {
         let mut builder = RequestBuilder::new();
         builder.method(Method::Get);
         assert_eq!(builder.build(), Err(RequestBuildError::MissingTarget));
-
-        let mut builder = RequestBuilder::new();
-        builder.method(Method::Get).target("/");
-        assert_eq!(builder.build(), Err(RequestBuildError::MissingVersion));
     }
 
     #[test]
@@ -166,7 +146,6 @@ mod tests {
 
         assert_eq!(request.method(), &Method::Get);
         assert_eq!(request.target(), "/");
-        assert_eq!(request.version(), Version::Http11);
         assert!(request.headers().is_empty());
         assert!(request.body().is_empty());
     }
@@ -181,20 +160,17 @@ mod tests {
         let mut builder = RequestBuilder::new();
         builder
             .method(Method::Get)
-            .method(Method::Put)
+            .method(Method::Post)
             .target("/old")
             .target("/new")
-            .version(Version::Http10)
-            .version(Version::Http11)
             .headers(old_headers)
             .headers(new_headers)
             .body(b"old".to_vec())
             .body(b"new".to_vec());
         let request = builder.build().expect("complete request should build");
 
-        assert_eq!(request.method(), &Method::Put);
+        assert_eq!(request.method(), &Method::Post);
         assert_eq!(request.target(), "/new");
-        assert_eq!(request.version(), Version::Http11);
         assert!(request.headers().get(&header_name("Old")).is_none());
         assert!(request.headers().get(&header_name("New")).is_some());
         assert_eq!(request.body(), b"new");
