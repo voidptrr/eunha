@@ -28,23 +28,24 @@
     src = pkgs.lib.fileset.toSource {
       root = ../.;
       fileset = pkgs.lib.fileset.unions [
+        ../CMakeLists.txt
         ../LICENSE
-        ../Makefile
         ../src
       ];
     };
   in {
-    packages.default = pkgs.stdenv.mkDerivation {
+    packages.default = pkgs.clangStdenv.mkDerivation {
       pname = "eunha";
       version = "0.1.0";
 
       inherit src;
 
-      installPhase = ''
-        runHook preInstall
-        make install prefix=$out
-        runHook postInstall
-      '';
+      nativeBuildInputs = with pkgs; [
+        cmake
+        ninja
+      ];
+
+      cmakeBuildType = "Release";
 
       meta = with pkgs.lib; {
         homepage = "https://github.com/voidptrr/eunha";

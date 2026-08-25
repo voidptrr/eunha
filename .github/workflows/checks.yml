@@ -19,12 +19,13 @@ name: checks
   pull_request:
     paths:
     - .github/dependabot.yml
-    - Makefile
+    - .clangd
+    - CMakeLists.txt
+    - CMakePresets.json
     - '**/*.nix'
     - '**/*.c'
     - '**/*.h'
-    - '**/Makefile'
-    - bear.yaml
+    - '**/CMakeLists.txt'
     - flake.lock
     - .github/workflows/checks.yml
   push:
@@ -32,11 +33,12 @@ name: checks
     - main
     paths:
     - .github/dependabot.yml
-    - Makefile
+    - .clangd
+    - CMakeLists.txt
+    - CMakePresets.json
     - '**/*.nix'
     - '**/*.c'
     - '**/*.h'
-    - '**/Makefile'
-    - bear.yaml
+    - '**/CMakeLists.txt'
     - flake.lock
     - .github/workflows/checks.yml

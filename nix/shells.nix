@@ -27,11 +27,13 @@
   }: {
     devShells.default = pkgs.mkShell {
       shellHook = config.pre-commit.installationScript;
+      CPATH = pkgs.lib.makeSearchPath "include" [pkgs.glibc.dev];
       packages = with pkgs; [
         alejandra
-        bear
+        cmake
+        clang
         clang-tools
-        gnumake
+        ninja
       ];
     };
   };

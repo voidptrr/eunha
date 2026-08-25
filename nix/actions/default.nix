@@ -22,12 +22,13 @@
 {inputs, ...}: let
   paths = [
     ".github/dependabot.yml"
-    "Makefile"
+    ".clangd"
+    "CMakeLists.txt"
+    "CMakePresets.json"
     "**/*.nix"
     "**/*.c"
     "**/*.h"
-    "**/Makefile"
-    "bear.yaml"
+    "**/CMakeLists.txt"
     "flake.lock"
     ".github/workflows/checks.yml"
   ];
