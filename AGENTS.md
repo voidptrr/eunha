@@ -2,6 +2,6 @@
 
 ## Project Structure
 
-- `crates/eunha-cli/` contains process startup and builds the `eunha` binary.
-- `crates/eunha-http/` contains HTTP protocol data.
+- `main.c` contains the `eunha` program.
+- `Makefile` builds and installs `eunha` and generates `compile_commands.json` through Bear.
 - `nix/` contains flake package, shell, hook, and workflow support.

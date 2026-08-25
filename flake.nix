@@ -29,13 +29,6 @@
     import-tree.url = "github:vic/import-tree";
     systems.url = "github:nix-systems/default";
 
-    crane.url = "github:ipetkov/crane";
-
-    rust-overlay = {
-      url = "github:oxalica/rust-overlay";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     actions-nix = {
       url = "github:nialov/actions.nix";
       inputs = {

@@ -19,26 +19,22 @@ name: checks
   pull_request:
     paths:
     - .github/dependabot.yml
-    - Cargo.lock
-    - Cargo.toml
+    - Makefile
     - '**/*.nix'
-    - '**/*.rs'
-    - '**/Cargo.toml'
+    - '**/*.c'
+    - '**/*.h'
+    - '**/Makefile'
     - flake.lock
-    - rustfmt.toml
-    - rust-toolchain.toml
     - .github/workflows/checks.yml
   push:
     branches:
     - main
     paths:
     - .github/dependabot.yml
-    - Cargo.lock
-    - Cargo.toml
+    - Makefile
     - '**/*.nix'
-    - '**/*.rs'
-    - '**/Cargo.toml'
+    - '**/*.c'
+    - '**/*.h'
+    - '**/Makefile'
     - flake.lock
-    - rustfmt.toml
-    - rust-toolchain.toml
     - .github/workflows/checks.yml

@@ -24,13 +24,10 @@
 
   perSystem = {...}: {
     pre-commit = {
-      # Crane supplies the sandboxed checks with vendored Cargo dependencies.
-      check.enable = false;
+      check.enable = true;
       settings.hooks = {
         alejandra.enable = true;
-        cargo-check.enable = true;
-        clippy.enable = true;
-        rustfmt.enable = true;
+        clang-format.enable = true;
       };
     };
   };

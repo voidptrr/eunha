@@ -20,17 +20,29 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-[package]
-name = "eunha-cli"
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-license.workspace = true
-repository.workspace = true
+CC ?= cc
+CFLAGS ?= -std=c17 -Wall -Wextra -Wpedantic
 
-[[bin]]
-name = "eunha"
-path = "src/main.rs"
+prefix ?= /usr/local
+bindir ?= $(prefix)/bin
 
-[lints]
-workspace = true
+target := build/eunha
+source := src/main.c
+
+.PHONY: all clean compile_commands install
+
+all: $(target)
+
+$(target): $(source)
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(LDFLAGS) $(LDLIBS) -o $@
+
+compile_commands:
+	bear -- $(MAKE) --always-make all
+
+install: $(target)
+	install -d $(DESTDIR)$(bindir)
+	install -m 755 $(target) $(DESTDIR)$(bindir)/eunha
+
+clean:
+	$(RM) -r build compile_commands.json

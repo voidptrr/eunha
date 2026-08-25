@@ -22,15 +22,6 @@
 
 version: 2
 updates:
-  - package-ecosystem: "cargo"
-    directory: "/"
-    schedule:
-      interval: "daily"
-    groups:
-      all-crates:
-        patterns:
-          - "*"
-
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

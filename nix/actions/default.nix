@@ -22,14 +22,12 @@
 {inputs, ...}: let
   paths = [
     ".github/dependabot.yml"
-    "Cargo.lock"
-    "Cargo.toml"
+    "Makefile"
     "**/*.nix"
-    "**/*.rs"
-    "**/Cargo.toml"
+    "**/*.c"
+    "**/*.h"
+    "**/Makefile"
     "flake.lock"
-    "rustfmt.toml"
-    "rust-toolchain.toml"
     ".github/workflows/checks.yml"
   ];
 in {
