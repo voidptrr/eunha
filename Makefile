@@ -20,29 +20,29 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-CC ?= cc
-CFLAGS ?= -std=c17 -Wall -Wextra -Wpedantic
+CC := gcc
+CFLAGS := -std=c17 -Wall -Wextra -Wpedantic
 
 prefix ?= /usr/local
-bindir ?= $(prefix)/bin
+bindir := $(prefix)/bin
 
 target := build/eunha
-source := src/main.c
+sources := $(wildcard src/*.c)
 
 .PHONY: all clean compile_commands install
 
 all: $(target)
 
-$(target): $(source)
+$(target): $(sources)
 	@mkdir -p $(dir $@)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(LDFLAGS) $(LDLIBS) -o $@
+	$(CC) $(CFLAGS) $(sources) -o $@
 
 compile_commands:
 	bear -- $(MAKE) --always-make all
 
 install: $(target)
-	install -d $(DESTDIR)$(bindir)
-	install -m 755 $(target) $(DESTDIR)$(bindir)/eunha
+	install -d $(bindir)
+	install -m 755 $(target) $(bindir)/eunha
 
 clean:
 	$(RM) -r build compile_commands.json
