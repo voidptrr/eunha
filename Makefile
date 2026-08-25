@@ -20,29 +20,85 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+NAME := eunha
 CC := gcc
-CFLAGS := -std=c17 -Wall -Wextra -Wpedantic
+warning_flags := \
+	-Wall \
+	-Wextra \
+	-Wpedantic \
+	-Walloc-zero \
+	-Walloca \
+	-Warray-bounds=2 \
+	-Wcast-qual \
+	-Wconversion \
+	-Wformat=2 \
+	-Wformat-overflow=2 \
+	-Wformat-truncation=2 \
+	-Wmissing-prototypes \
+	-Wnull-dereference \
+	-Wshadow \
+	-Wsign-conversion \
+	-Wstrict-prototypes \
+	-Wstringop-overflow=4 \
+	-Wundef \
+	-Wvla \
+	-Wwrite-strings
+
+profile ?= debug
+
+ifeq ($(profile),debug)
+profile_cflags := -Og -g3 -Werror -fanalyzer \
+	-fsanitize=address,undefined \
+	-fno-omit-frame-pointer
+profile_ldflags := -fsanitize=address,undefined
+else ifeq ($(profile),release)
+profile_cppflags := -D_FORTIFY_SOURCE=3
+profile_cflags := -O2 -fstack-protector-strong -fPIE
+profile_ldflags := -pie -Wl,-z,relro -Wl,-z,now
+else
+$(error unknown build profile '$(profile)')
+endif
+
+CPPFLAGS := $(profile_cppflags)
+CFLAGS := -std=c17 $(warning_flags) $(profile_cflags)
+LDFLAGS := $(profile_ldflags)
 
 prefix ?= /usr/local
 bindir := $(prefix)/bin
+builddir := build/$(profile)
+target := $(builddir)/$(NAME)
 
-target := build/eunha
-sources := $(wildcard src/*.c)
+sources := $(sort $(shell find src -type f -name '*.c'))
+objects := $(patsubst src/%.c,$(builddir)/%.o,$(sources))
+dependencies := $(objects:.o=.d)
 
-.PHONY: all clean compile_commands install
+.PHONY: all build clean compile_commands debug install release
 
-all: $(target)
+all: debug
 
-$(target): $(sources)
+debug:
+	$(MAKE) profile=debug build
+
+release:
+	$(MAKE) profile=release build
+
+build: $(target)
+
+$(target): $(objects)
+	$(CC) $(LDFLAGS) $(objects) -o $@
+
+$(builddir)/%.o: src/%.c Makefile
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(sources) -o $@
+	$(CC) $(CPPFLAGS) $(CFLAGS) -MMD -MP -c $< -o $@
 
 compile_commands:
-	bear --config bear.yaml -- $(MAKE) --always-make all
+	bear --config bear.yaml -- $(MAKE) --always-make profile=debug build
 
-install: $(target)
+install: release
 	install -d $(bindir)
-	install -m 755 $(target) $(bindir)/eunha
+	install -m 755 build/release/$(NAME) $(bindir)/$(NAME)
 
 clean:
 	$(RM) -r build compile_commands.json
+
+-include $(dependencies)
