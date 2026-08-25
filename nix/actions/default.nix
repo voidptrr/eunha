@@ -27,6 +27,7 @@
     "**/*.c"
     "**/*.h"
     "**/Makefile"
+    "bear.yaml"
     "flake.lock"
     ".github/workflows/checks.yml"
   ];

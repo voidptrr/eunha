@@ -20,29 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-CC := gcc
-CFLAGS := -std=c17 -Wall -Wextra -Wpedantic
-
-prefix ?= /usr/local
-bindir := $(prefix)/bin
-
-target := build/eunha
-sources := $(wildcard src/*.c)
-
-.PHONY: all clean compile_commands install
-
-all: $(target)
-
-$(target): $(sources)
-	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(sources) -o $@
-
-compile_commands:
-	bear --config bear.yaml -- $(MAKE) --always-make all
-
-install: $(target)
-	install -d $(bindir)
-	install -m 755 $(target) $(bindir)/eunha
-
-clean:
-	$(RM) -r build compile_commands.json
+schema: "4.0"
+duplicates:
+  match_on:
+    - file
+    - output
