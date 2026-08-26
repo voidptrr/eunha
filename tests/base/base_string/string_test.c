@@ -30,7 +30,7 @@
 
 #define DEFAULT_CAPACITY 8
 
-static void expect_string(const struct string_t* string, const char* expected,
+static void expect_string(const struct string* string, const char* expected,
                           size_t expected_capacity) {
     size_t expected_len = strlen(expected);
 
@@ -43,71 +43,71 @@ static void expect_string(const struct string_t* string, const char* expected,
     assert(string->data[string->len] == '\0');
 }
 
-static void test_empty_initialization(void) {
-    struct string_t* from_null = string_init(NULL);
-    struct string_t* from_empty = string_init("");
+static void test_empty_allocation(void) {
+    struct string* from_null = string_alloc(NULL);
+    struct string* from_empty = string_alloc("");
 
     expect_string(from_null, "", DEFAULT_CAPACITY);
     expect_string(from_empty, "", DEFAULT_CAPACITY);
 
-    string_deinit(from_null);
-    string_deinit(from_empty);
+    string_free(from_null);
+    string_free(from_empty);
 }
 
 static void test_initial_content_and_capacity(void) {
-    struct string_t* short_string = string_init("hello");
-    struct string_t* exact_string = string_init("12345678");
-    struct string_t* long_string = string_init("123456789");
+    struct string* short_string = string_alloc("hello");
+    struct string* exact_string = string_alloc("12345678");
+    struct string* long_string = string_alloc("123456789");
 
     expect_string(short_string, "hello", DEFAULT_CAPACITY);
     expect_string(exact_string, "12345678", DEFAULT_CAPACITY);
     expect_string(long_string, "123456789", 9);
 
-    string_deinit(short_string);
-    string_deinit(exact_string);
-    string_deinit(long_string);
+    string_free(short_string);
+    string_free(exact_string);
+    string_free(long_string);
 }
 
 static void test_empty_append(void) {
-    struct string_t* string = string_init("hello");
+    struct string* string = string_alloc("hello");
 
     string_append(string, "");
     expect_string(string, "hello", DEFAULT_CAPACITY);
 
-    string_deinit(string);
+    string_free(string);
 }
 
 static void test_append_without_growth(void) {
     char source[] = "def";
-    struct string_t* string = string_init("abc");
+    struct string* string = string_alloc("abc");
 
     string_append(string, source);
     expect_string(string, "abcdef", DEFAULT_CAPACITY);
     assert(strcmp(source, "def") == 0);
 
-    string_deinit(string);
+    string_free(string);
 }
 
 static void test_append_at_capacity_boundary(void) {
-    struct string_t* string = string_init("1234");
+    struct string* string = string_alloc("1234");
 
     string_append(string, "5678");
     expect_string(string, "12345678", DEFAULT_CAPACITY);
 
-    string_deinit(string);
+    string_free(string);
 }
 
 static void test_append_with_growth(void) {
-    struct string_t* string = string_init("12345678");
+    struct string* string = string_alloc("12345678");
 
     string_append(string, "9");
     expect_string(string, "123456789", 18);
 
-    string_deinit(string);
+    string_free(string);
 }
 
 static void test_repeated_append_growth_boundaries(void) {
-    struct string_t* string = string_init(NULL);
+    struct string* string = string_alloc(NULL);
 
     string_append(string, "12345678");
     expect_string(string, "12345678", DEFAULT_CAPACITY);
@@ -121,7 +121,7 @@ static void test_repeated_append_growth_boundaries(void) {
     string_append(string, "j");
     expect_string(string, "123456789abcdefghij", 38);
 
-    string_deinit(string);
+    string_free(string);
 }
 
 static void test_large_append(void) {
@@ -132,7 +132,7 @@ static void test_large_append(void) {
     initial[sizeof(initial) - 1] = '\0';
     suffix[sizeof(suffix) - 1] = '\0';
 
-    struct string_t* string = string_init(initial);
+    struct string* string = string_alloc(initial);
     expect_string(string, initial, 256);
 
     string_append(string, suffix);
@@ -141,58 +141,58 @@ static void test_large_append(void) {
     assert(memcmp(string->data, initial, 256) == 0);
     assert(memcmp(string->data + 256, suffix, 257) == 0);
 
-    string_deinit(string);
+    string_free(string);
 }
 
 static void test_empty_prepend(void) {
     char source[] = "";
-    struct string_t* string = string_init("hello");
+    struct string* string = string_alloc("hello");
 
     string_prepend(string, source);
     expect_string(string, "hello", DEFAULT_CAPACITY);
 
-    string_deinit(string);
+    string_free(string);
 }
 
 static void test_prepend_to_empty_string(void) {
     char source[] = "hello";
-    struct string_t* string = string_init(NULL);
+    struct string* string = string_alloc(NULL);
 
     string_prepend(string, source);
     expect_string(string, "hello", DEFAULT_CAPACITY);
 
-    string_deinit(string);
+    string_free(string);
 }
 
 static void test_prepend_without_growth(void) {
     char source[] = "abc";
-    struct string_t* string = string_init("def");
+    struct string* string = string_alloc("def");
 
     string_prepend(string, source);
     expect_string(string, "abcdef", DEFAULT_CAPACITY);
     assert(strcmp(source, "abc") == 0);
 
-    string_deinit(string);
+    string_free(string);
 }
 
 static void test_prepend_at_capacity_boundary(void) {
     char source[] = "1234";
-    struct string_t* string = string_init("5678");
+    struct string* string = string_alloc("5678");
 
     string_prepend(string, source);
     expect_string(string, "12345678", DEFAULT_CAPACITY);
 
-    string_deinit(string);
+    string_free(string);
 }
 
 static void test_prepend_with_growth(void) {
     char source[] = "1";
-    struct string_t* string = string_init("23456789");
+    struct string* string = string_alloc("23456789");
 
     string_prepend(string, source);
     expect_string(string, "123456789", 18);
 
-    string_deinit(string);
+    string_free(string);
 }
 
 static void test_repeated_prepend_growth_boundaries(void) {
@@ -200,7 +200,7 @@ static void test_repeated_prepend_growth_boundaries(void) {
     char second[] = "9";
     char third[] = "abcdefghi";
     char fourth[] = "j";
-    struct string_t* string = string_init(NULL);
+    struct string* string = string_alloc(NULL);
 
     string_prepend(string, first);
     expect_string(string, "12345678", DEFAULT_CAPACITY);
@@ -214,7 +214,7 @@ static void test_repeated_prepend_growth_boundaries(void) {
     string_prepend(string, fourth);
     expect_string(string, "jabcdefghi912345678", 38);
 
-    string_deinit(string);
+    string_free(string);
 }
 
 static void test_large_prepend(void) {
@@ -225,7 +225,7 @@ static void test_large_prepend(void) {
     initial[sizeof(initial) - 1] = '\0';
     prefix[sizeof(prefix) - 1] = '\0';
 
-    struct string_t* string = string_init(initial);
+    struct string* string = string_alloc(initial);
     string_prepend(string, prefix);
 
     assert(string_len(string) == 512);
@@ -233,11 +233,11 @@ static void test_large_prepend(void) {
     assert(memcmp(string->data, prefix, 256) == 0);
     assert(memcmp(string->data + 256, initial, 257) == 0);
 
-    string_deinit(string);
+    string_free(string);
 }
 
 static void test_contains_at_each_position(void) {
-    struct string_t* string = string_init("prefix-middle-suffix");
+    struct string* string = string_alloc("prefix-middle-suffix");
 
     assert(string_contains(string, "prefix"));
     assert(string_contains(string, "middle"));
@@ -246,65 +246,65 @@ static void test_contains_at_each_position(void) {
     assert(!string_contains(string, "missing"));
     assert(!string_contains(string, "prefix-middle-suffix-extra"));
 
-    string_deinit(string);
+    string_free(string);
 }
 
 static void test_contains_is_case_sensitive(void) {
-    struct string_t* string = string_init("Eunha");
+    struct string* string = string_alloc("Eunha");
 
     assert(string_contains(string, "Eunha"));
     assert(!string_contains(string, "eunha"));
 
-    string_deinit(string);
+    string_free(string);
 }
 
 static void test_contains_empty_needle(void) {
-    struct string_t* empty = string_init(NULL);
-    struct string_t* nonempty = string_init("eunha");
+    struct string* empty = string_alloc(NULL);
+    struct string* nonempty = string_alloc("eunha");
 
     assert(string_contains(empty, ""));
     assert(string_contains(nonempty, ""));
     assert(!string_contains(empty, "eunha"));
 
-    string_deinit(empty);
-    string_deinit(nonempty);
+    string_free(empty);
+    string_free(nonempty);
 }
 
-static void test_starts_with_prefix(void) {
-    struct string_t* string = string_init("prefix-middle-suffix");
+static void test_has_prefix(void) {
+    struct string* string = string_alloc("prefix-middle-suffix");
 
-    assert(string_starts_with(string, "prefix"));
-    assert(string_starts_with(string, "prefix-middle-suffix"));
-    assert(!string_starts_with(string, "middle"));
-    assert(!string_starts_with(string, "suffix"));
-    assert(!string_starts_with(string, "prefix-middle-suffix-extra"));
+    assert(string_has_prefix(string, "prefix"));
+    assert(string_has_prefix(string, "prefix-middle-suffix"));
+    assert(!string_has_prefix(string, "middle"));
+    assert(!string_has_prefix(string, "suffix"));
+    assert(!string_has_prefix(string, "prefix-middle-suffix-extra"));
 
-    string_deinit(string);
+    string_free(string);
 }
 
-static void test_starts_with_is_case_sensitive(void) {
-    struct string_t* string = string_init("Eunha");
+static void test_has_prefix_is_case_sensitive(void) {
+    struct string* string = string_alloc("Eunha");
 
-    assert(string_starts_with(string, "Eun"));
-    assert(!string_starts_with(string, "eun"));
+    assert(string_has_prefix(string, "Eun"));
+    assert(!string_has_prefix(string, "eun"));
 
-    string_deinit(string);
+    string_free(string);
 }
 
-static void test_starts_with_empty_prefix(void) {
-    struct string_t* empty = string_init(NULL);
-    struct string_t* nonempty = string_init("eunha");
+static void test_has_prefix_empty_prefix(void) {
+    struct string* empty = string_alloc(NULL);
+    struct string* nonempty = string_alloc("eunha");
 
-    assert(string_starts_with(empty, ""));
-    assert(string_starts_with(nonempty, ""));
-    assert(!string_starts_with(empty, "eunha"));
+    assert(string_has_prefix(empty, ""));
+    assert(string_has_prefix(nonempty, ""));
+    assert(!string_has_prefix(empty, "eunha"));
 
-    string_deinit(empty);
-    string_deinit(nonempty);
+    string_free(empty);
+    string_free(nonempty);
 }
 
 int main(void) {
-    test_empty_initialization();
+    test_empty_allocation();
     test_initial_content_and_capacity();
     test_empty_append();
     test_append_without_growth();
@@ -322,8 +322,8 @@ int main(void) {
     test_contains_at_each_position();
     test_contains_is_case_sensitive();
     test_contains_empty_needle();
-    test_starts_with_prefix();
-    test_starts_with_is_case_sensitive();
-    test_starts_with_empty_prefix();
+    test_has_prefix();
+    test_has_prefix_is_case_sensitive();
+    test_has_prefix_empty_prefix();
     return 0;
 }

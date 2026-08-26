@@ -32,11 +32,7 @@
 
 #define DEFAULT_CAPACITY 8
 
-/**
- * INTERNAL HELPERS
- */
-
-static int string_grow(struct string_t* dst, size_t final_len) {
+static int string_grow(struct string* dst, size_t final_len) {
     if (ckd_mul(&dst->capacity, final_len, 2)) {
         return 1;
     }
@@ -51,42 +47,38 @@ static int string_grow(struct string_t* dst, size_t final_len) {
     return 0;
 }
 
-/**
- * STRING METHODS
- */
-
-struct string_t* string_init(const char* initial) {
+struct string* string_alloc(const char* initial) {
     size_t initial_len = initial != NULL ? strlen(initial) : 0;
-    struct string_t* string = malloc(sizeof(struct string_t));
-    if (string == NULL) {
+    struct string* str = malloc(sizeof(struct string));
+    if (str == NULL) {
         exit(EXIT_FAILURE);
     }
 
-    string->capacity =
+    str->capacity =
         initial_len > DEFAULT_CAPACITY ? initial_len : DEFAULT_CAPACITY;
-    string->len = initial_len;
+    str->len = initial_len;
 
-    char* initial_data = malloc((sizeof(char) * string->capacity) + 1);
+    char* initial_data = malloc((sizeof(char) * str->capacity) + 1);
     if (initial_data == NULL) {
         exit(EXIT_FAILURE);
     }
 
-    string->data = initial_data;
+    str->data = initial_data;
 
     if (initial_len > 0) {
-        memcpy(string->data, initial, initial_len);
+        memcpy(str->data, initial, initial_len);
     }
 
-    string->data[initial_len] = '\0';
-    return string;
+    str->data[initial_len] = '\0';
+    return str;
 }
 
-size_t string_len(const struct string_t* string) {
-    assert(string != NULL);
-    return string->len;
+size_t string_len(const struct string* str) {
+    assert(str != NULL);
+    return str->len;
 }
 
-void string_append(struct string_t* dst, const char* src) {
+void string_append(struct string* dst, const char* src) {
     assert(dst != NULL);
     assert(src != NULL);
 
@@ -95,12 +87,12 @@ void string_append(struct string_t* dst, const char* src) {
 
     size_t final_len = 0;
     if (ckd_add(&final_len, dst_len, src_len)) {
-        string_deinit(dst);
+        string_free(dst);
         exit(EXIT_FAILURE);
     }
 
     if (final_len > dst->capacity && string_grow(dst, final_len)) {
-        string_deinit(dst);
+        string_free(dst);
         exit(EXIT_FAILURE);
     }
 
@@ -109,7 +101,7 @@ void string_append(struct string_t* dst, const char* src) {
     dst->data[final_len] = '\0';
 }
 
-void string_prepend(struct string_t* dst, const char* src) {
+void string_prepend(struct string* dst, const char* src) {
     assert(dst != NULL);
     assert(src != NULL);
 
@@ -117,12 +109,12 @@ void string_prepend(struct string_t* dst, const char* src) {
     size_t dst_len = string_len(dst);
     size_t final_len = 0;
     if (ckd_add(&final_len, dst_len, src_len)) {
-        string_deinit(dst);
+        string_free(dst);
         exit(EXIT_FAILURE);
     }
 
     if (final_len > dst->capacity && string_grow(dst, final_len)) {
-        string_deinit(dst);
+        string_free(dst);
         exit(EXIT_FAILURE);
     }
 
@@ -131,53 +123,27 @@ void string_prepend(struct string_t* dst, const char* src) {
     dst->len = final_len;
 }
 
-bool string_contains(const struct string_t* string, const char* needle) {
-    assert(string != NULL);
+bool string_contains(const struct string* haystack, const char* needle) {
+    assert(haystack != NULL);
     assert(needle != NULL);
 
-    return strstr(string->data, needle) != NULL;
+    return strstr(haystack->data, needle) != NULL;
 }
 
-bool string_starts_with(const struct string_t* string, const char* prefix) {
-    assert(string != NULL);
+bool string_has_prefix(const struct string* str, const char* prefix) {
+    assert(str != NULL);
     assert(prefix != NULL);
 
     size_t prefix_len = strlen(prefix);
-    return (string_len(string) >= prefix_len &&
-            memcmp(string->data, prefix, prefix_len) == 0) != 0;
+    return (string_len(str) >= prefix_len &&
+            memcmp(str->data, prefix, prefix_len) == 0) != 0;
 }
 
-void string_deinit(struct string_t* string) {
-    assert(string != NULL);
-    if (string->data != NULL) {
-        free(string->data);
+void string_free(struct string* str) {
+    assert(str != NULL);
+    if (str->data != NULL) {
+        free(str->data);
     }
 
-    free(string);
-}
-
-/**
- * ITERATOR METHODS
- */
-
-struct string_iterator_t string_iterator_init(const struct string_t* string) {
-    assert(string != NULL);
-
-    struct string_iterator_t iter = {
-        .current_index = 0,
-        .len = string->len,
-        .data = string->data,
-    };
-
-    return iter;
-}
-
-bool string_iterator_next(struct string_iterator_t* iter, char* element) {
-    if (iter->current_index >= iter->len) {
-        return false;
-    }
-
-    *element = iter->data[iter->current_index++];
-
-    return true;
+    free(str);
 }

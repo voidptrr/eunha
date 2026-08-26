@@ -41,6 +41,8 @@ AlwaysBreakTemplateDeclarations: false
 BinPackArguments: true
 BinPackParameters: true
 ColumnLimit: 80
+ForEachMacros: 
+  - 'for_each_char'
 IncludeBlocks: Regroup
 IncludeCategories:
   - Regex: '^<.*>$'
@@ -52,5 +54,6 @@ IndentWidth: 4
 MaxEmptyLinesToKeep: 1
 PointerAlignment: Left
 SortIncludes: CaseSensitive
+SpaceBeforeParens: ControlStatementsExceptForEachMacros
 TabWidth: 4
 UseTab: Never

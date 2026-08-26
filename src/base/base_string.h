@@ -27,65 +27,49 @@
 
 #include <stddef.h>
 
-struct string_t {
+struct string {
     size_t len;
     size_t capacity;
     char* data;
 };
 
-struct string_iterator_t {
-    size_t current_index;
-    size_t len;
-    const char* data;
-};
-
-/**
- * STRING METHODS
- */
+/** Iterates a caller-owned const char cursor, excluding the null terminator. */
+#define for_each_char(pos, str) for ((pos) = (str)->data; *(pos); ++(pos))
 
 /**
  * Allocates an owned string from null-terminated bytes, or an empty string when
  * initialized with NULL. Exits the process if allocation fails.
  */
-struct string_t* string_init(const char* initial);
+struct string* string_alloc(const char* initial);
 
 /** Returns the string length in bytes, excluding the null terminator. */
-size_t string_len(const struct string_t* string);
+size_t string_len(const struct string* str);
 
 /**
  * Appends null-terminated bytes, growing the destination as needed. The source
  * must not point into the destination's backing storage.
  */
-void string_append(struct string_t* dst, const char* src);
+void string_append(struct string* dst, const char* src);
 
 /**
- * Prepend bytes, growing the destination as needed. The source
- * must not point into the destination's backing storage.
+ * Prepends null-terminated bytes, growing the destination as needed. The
+ * source must not point into the destination's backing storage.
  */
-void string_prepend(struct string_t* dst, const char* src);
+void string_prepend(struct string* dst, const char* src);
 
 /**
  * Returns whether the string contains the null-terminated needle. Matching is
  * bytewise and case-sensitive; an empty needle always matches.
  */
-bool string_contains(const struct string_t* string, const char* needle);
+bool string_contains(const struct string* haystack, const char* needle);
 
 /**
- * Returns whether the string starts with the given prefix.
+ * Returns whether the string has the null-terminated prefix. Matching is
+ * bytewise and case-sensitive; an empty prefix always matches.
  */
-bool string_starts_with(const struct string_t* string, const char* prefix);
+bool string_has_prefix(const struct string* str, const char* prefix);
 
 /** Frees an owned string and its backing storage. */
-void string_deinit(struct string_t* string);
-
-/**
- * ITERATOR METHODS
- */
-
-/** Returns iterator from string. */
-struct string_iterator_t string_iterator_init(const struct string_t* string);
-
-/** Returns next element in the string buffer. */
-bool string_iterator_next(struct string_iterator_t* iter, char* element);
+void string_free(struct string* str);
 
 #endif
