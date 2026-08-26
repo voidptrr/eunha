@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # MIT License
 #
 # Copyright (c) 2026 Tommaso Bruno
@@ -19,21 +21,9 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-{
-  perSystem = {
-    config,
-    pkgs,
-    ...
-  }: {
-    devShells.default = pkgs.mkShell {
-      CPATH = pkgs.lib.makeSearchPath "include" [pkgs.glibc.dev];
-      packages = [
-        pkgs.clang
-        pkgs.clang-tools
-        config.packages.build
-        config.packages.pre-checks
-        config.packages.format
-      ];
-    };
-  };
-}
+
+set -eu
+
+alejandra .
+find src tests -type f \( -name '*.c' -o -name '*.h' \) \
+    -exec clang-format -i {} +

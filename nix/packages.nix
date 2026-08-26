@@ -21,6 +21,11 @@
 # SOFTWARE.
 {
   perSystem = {pkgs, ...}: let
+    format = pkgs.writeShellApplication {
+      name = "format";
+      runtimeInputs = with pkgs; [findutils clang-tools alejandra];
+      text = builtins.readFile ../scripts/format.sh;
+    };
     build = pkgs.writeShellApplication {
       name = "build";
       runtimeInputs = [pkgs.clang];
@@ -55,8 +60,8 @@
         dontConfigure = true;
 
         buildPhase = ''
-          runHook preBuild
-          build ${mode}
+            runHook preBuild
+            build ${mode}
           runHook postBuild
         '';
 
@@ -81,7 +86,7 @@
       };
   in {
     packages = {
-      inherit build pre-checks;
+      inherit build pre-checks format;
       default = mkEunha "release";
       debug = mkEunha "debug";
     };

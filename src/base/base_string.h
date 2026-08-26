@@ -49,10 +49,21 @@ size_t string_len(const struct string_t* string);
 void string_append(struct string_t* dst, const char* src);
 
 /**
- * Prepend null-terminated bytes, growing the destination as needed. The source
+ * Prepend bytes, growing the destination as needed. The source
  * must not point into the destination's backing storage.
  */
 void string_prepend(struct string_t* dst, const char* src);
+
+/**
+ * Returns whether the string contains the null-terminated needle. Matching is
+ * bytewise and case-sensitive; an empty needle always matches.
+ */
+bool string_contains(const struct string_t* string, const char* needle);
+
+/**
+ * Returns whether the string starts with the given prefix.
+ */
+bool string_starts_with(const struct string_t* string, const char* prefix);
 
 /** Frees an owned string and its backing storage. */
 void string_deinit(struct string_t* string);

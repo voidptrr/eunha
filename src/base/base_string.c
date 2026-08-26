@@ -123,6 +123,22 @@ void string_prepend(struct string_t* dst, const char* src) {
     dst->len = final_len;
 }
 
+bool string_contains(const struct string_t* string, const char* needle) {
+    assert(string != NULL);
+    assert(needle != NULL);
+
+    return strstr(string->data, needle) != NULL;
+}
+
+bool string_starts_with(const struct string_t* string, const char* prefix) {
+    assert(string != NULL);
+    assert(prefix != NULL);
+
+    size_t prefix_len = strlen(prefix);
+    return (string_len(string) >= prefix_len &&
+            memcmp(string->data, prefix, prefix_len) == 0) != 0;
+}
+
 void string_deinit(struct string_t* string) {
     assert(string != NULL);
     if (string->data != NULL) {
