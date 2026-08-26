@@ -29,6 +29,7 @@ find src tests -type f \( -name '*.c' -o -name '*.h' \) \
     -exec clang-format --dry-run --Werror {} +
 
 bear --output compile_commands.json -- ./scripts/build.sh debug
+bear --append --output compile_commands.json -- ./scripts/build.sh tests
 ./scripts/build.sh tests
 
 shopt -s globstar nullglob
