@@ -12,8 +12,7 @@
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/debug",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_C_COMPILER": "clang"
+                "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
@@ -22,8 +21,7 @@
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/release",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_C_COMPILER": "clang"
+                "CMAKE_BUILD_TYPE": "Release"
             }
         }
     ],

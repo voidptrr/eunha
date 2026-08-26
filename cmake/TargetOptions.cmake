@@ -20,8 +20,47 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-.cache
-.DS_Store
-.pre-commit-config.yaml
-build/
-result
+include_guard(GLOBAL)
+
+function(eunha_configure_target target)
+  target_include_directories(${target} PRIVATE
+    "${PROJECT_SOURCE_DIR}/src"
+  )
+
+  target_compile_options(${target} PRIVATE
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Walloca
+    -Warray-bounds
+    -Wcast-align
+    -Wcast-qual
+    -Wcomma
+    -Wconversion
+    -Wdouble-promotion
+    -Wformat=2
+    -Wimplicit-fallthrough
+    -Wmissing-prototypes
+    -Wnull-dereference
+    -Wpointer-arith
+    -Wshadow
+    -Wsign-conversion
+    -Wstrict-prototypes
+    -Wswitch-enum
+    -Wundef
+    -Wunreachable-code
+    -Wvla
+    -Wwrite-strings
+    "$<$<CONFIG:Debug>:-Og;-Werror;-fsanitize=address,undefined;-fno-omit-frame-pointer>"
+    "$<$<CONFIG:Release>:-UNDEBUG;-O2;-fstack-protector-strong;-fPIE>"
+  )
+
+  target_compile_definitions(${target} PRIVATE
+    "$<$<CONFIG:Release>:_FORTIFY_SOURCE=3>"
+  )
+
+  target_link_options(${target} PRIVATE
+    "$<$<CONFIG:Debug>:-fsanitize=address,undefined>"
+    "$<$<CONFIG:Release>:-pie;-Wl,-z,relro;-Wl,-z,now>"
+  )
+endfunction()

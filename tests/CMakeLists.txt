@@ -20,8 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-.cache
-.DS_Store
-.pre-commit-config.yaml
-build/
-result
+add_executable(base_string_test
+  base/base_string_test.c
+  "${PROJECT_SOURCE_DIR}/src/base/base_string.c"
+)
+
+eunha_configure_target(base_string_test)
+add_test(NAME base_string COMMAND base_string_test)

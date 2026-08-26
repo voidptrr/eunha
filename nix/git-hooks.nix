@@ -28,10 +28,10 @@
       settings.hooks = {
         alejandra.enable = true;
         clang-format.enable = true;
-        eunha-check = {
+        pre-checks = {
           enable = true;
-          name = "eunha-check";
-          entry = "${config.packages.check}/bin/eunha-check";
+          name = "pre-checks";
+          entry = "${config.packages.pre-checks}/bin/pre-checks";
           always_run = true;
           pass_filenames = false;
         };

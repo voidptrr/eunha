@@ -30,6 +30,7 @@
       fileset = pkgs.lib.fileset.unions [
         ../CMakeLists.txt
         ../LICENSE
+        ../cmake
         ../src
       ];
     };
@@ -65,8 +66,8 @@
     packages = {
       default = mkEunha "Release";
       debug = mkEunha "Debug";
-      check = pkgs.writeShellApplication {
-        name = "eunha-check";
+      pre-checks = pkgs.writeShellApplication {
+        name = "pre-checks";
         runtimeInputs = with pkgs; [
           cmake
           clang

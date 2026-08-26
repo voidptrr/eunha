@@ -19,23 +19,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-{inputs, ...}: let
-  paths = [
-    ".github/dependabot.yml"
-    ".clang-format"
-    ".clangd"
-    ".clang-tidy"
-    "CMakeLists.txt"
-    "CMakePresets.json"
-    "scripts/check.sh"
-    "**/*.nix"
-    "**/*.c"
-    "**/*.h"
-    "**/CMakeLists.txt"
-    "flake.lock"
-    ".github/workflows/checks.yml"
-  ];
-in {
+{inputs, ...}: {
   imports = [
     inputs.actions-nix.flakeModules.default
   ];
@@ -47,12 +31,9 @@ in {
         name = "checks";
 
         on = {
-          pull_request = {
-            inherit paths;
-          };
+          pull_request = {};
           push = {
             branches = ["main"];
-            inherit paths;
           };
         };
 

@@ -14,35 +14,7 @@ jobs:
       run: nix flake check
 name: checks
 'on':
-  pull_request:
-    paths:
-    - .github/dependabot.yml
-    - .clang-format
-    - .clangd
-    - .clang-tidy
-    - CMakeLists.txt
-    - CMakePresets.json
-    - scripts/check.sh
-    - '**/*.nix'
-    - '**/*.c'
-    - '**/*.h'
-    - '**/CMakeLists.txt'
-    - flake.lock
-    - .github/workflows/checks.yml
+  pull_request: {}
   push:
     branches:
     - main
-    paths:
-    - .github/dependabot.yml
-    - .clang-format
-    - .clangd
-    - .clang-tidy
-    - CMakeLists.txt
-    - CMakePresets.json
-    - scripts/check.sh
-    - '**/*.nix'
-    - '**/*.c'
-    - '**/*.h'
-    - '**/CMakeLists.txt'
-    - flake.lock
-    - .github/workflows/checks.yml
