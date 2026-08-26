@@ -270,6 +270,39 @@ static void test_contains_empty_needle(void) {
     string_deinit(nonempty);
 }
 
+static void test_starts_with_prefix(void) {
+    struct string_t* string = string_init("prefix-middle-suffix");
+
+    assert(string_starts_with(string, "prefix"));
+    assert(string_starts_with(string, "prefix-middle-suffix"));
+    assert(!string_starts_with(string, "middle"));
+    assert(!string_starts_with(string, "suffix"));
+    assert(!string_starts_with(string, "prefix-middle-suffix-extra"));
+
+    string_deinit(string);
+}
+
+static void test_starts_with_is_case_sensitive(void) {
+    struct string_t* string = string_init("Eunha");
+
+    assert(string_starts_with(string, "Eun"));
+    assert(!string_starts_with(string, "eun"));
+
+    string_deinit(string);
+}
+
+static void test_starts_with_empty_prefix(void) {
+    struct string_t* empty = string_init(NULL);
+    struct string_t* nonempty = string_init("eunha");
+
+    assert(string_starts_with(empty, ""));
+    assert(string_starts_with(nonempty, ""));
+    assert(!string_starts_with(empty, "eunha"));
+
+    string_deinit(empty);
+    string_deinit(nonempty);
+}
+
 int main(void) {
     test_empty_initialization();
     test_initial_content_and_capacity();
@@ -289,5 +322,8 @@ int main(void) {
     test_contains_at_each_position();
     test_contains_is_case_sensitive();
     test_contains_empty_needle();
+    test_starts_with_prefix();
+    test_starts_with_is_case_sensitive();
+    test_starts_with_empty_prefix();
     return 0;
 }
