@@ -22,9 +22,12 @@
 {inputs, ...}: let
   paths = [
     ".github/dependabot.yml"
+    ".clang-format"
     ".clangd"
+    ".clang-tidy"
     "CMakeLists.txt"
     "CMakePresets.json"
+    "scripts/check.sh"
     "**/*.nix"
     "**/*.c"
     "**/*.h"
@@ -53,19 +56,15 @@ in {
           };
         };
 
-        jobs.flake = {
+        jobs.checks = {
           runs-on = "ubuntu-latest";
           steps = [
             {uses = "actions/checkout@v7";}
             {uses = "DeterminateSystems/nix-installer-action@main";}
             {uses = "DeterminateSystems/magic-nix-cache-action@main";}
             {
-              name = "Run nix flake check";
+              name = "Run checks";
               run = "nix flake check";
-            }
-            {
-              name = "Build package";
-              run = "nix build";
             }
           ];
         };

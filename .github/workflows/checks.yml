@@ -4,24 +4,25 @@
 #   nix run .#render-workflows
 # Or commit to trigger the pre-commit hook if enabled.
 jobs:
-  flake:
+  checks:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
     - uses: DeterminateSystems/nix-installer-action@main
     - uses: DeterminateSystems/magic-nix-cache-action@main
-    - name: Run nix flake check
+    - name: Run checks
       run: nix flake check
-    - name: Build package
-      run: nix build
 name: checks
 'on':
   pull_request:
     paths:
     - .github/dependabot.yml
+    - .clang-format
     - .clangd
+    - .clang-tidy
     - CMakeLists.txt
     - CMakePresets.json
+    - scripts/check.sh
     - '**/*.nix'
     - '**/*.c'
     - '**/*.h'
@@ -33,9 +34,12 @@ name: checks
     - main
     paths:
     - .github/dependabot.yml
+    - .clang-format
     - .clangd
+    - .clang-tidy
     - CMakeLists.txt
     - CMakePresets.json
+    - scripts/check.sh
     - '**/*.nix'
     - '**/*.c'
     - '**/*.h'

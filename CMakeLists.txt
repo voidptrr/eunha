@@ -36,7 +36,7 @@ if(NOT CMAKE_BUILD_TYPE MATCHES "^(Debug|Release)$")
   message(FATAL_ERROR "CMAKE_BUILD_TYPE must be Debug or Release")
 endif()
 
-set(CMAKE_C_STANDARD 17)
+set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -45,43 +45,61 @@ file(GLOB_RECURSE EUNHA_SOURCES CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
 )
 
+function(eunha_configure_target target)
+  target_include_directories(${target} PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+  )
+
+  target_compile_options(${target} PRIVATE
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Walloca
+    -Warray-bounds
+    -Wcast-align
+    -Wcast-qual
+    -Wcomma
+    -Wconversion
+    -Wdouble-promotion
+    -Wformat=2
+    -Wimplicit-fallthrough
+    -Wmissing-prototypes
+    -Wnull-dereference
+    -Wpointer-arith
+    -Wshadow
+    -Wsign-conversion
+    -Wstrict-prototypes
+    -Wswitch-enum
+    -Wundef
+    -Wunreachable-code
+    -Wvla
+    -Wwrite-strings
+    "$<$<CONFIG:Debug>:-Og;-Werror;-fsanitize=address,undefined;-fno-omit-frame-pointer>"
+    "$<$<CONFIG:Release>:-UNDEBUG;-O2;-fstack-protector-strong;-fPIE>"
+  )
+
+  target_compile_definitions(${target} PRIVATE
+    "$<$<CONFIG:Release>:_FORTIFY_SOURCE=3>"
+  )
+
+  target_link_options(${target} PRIVATE
+    "$<$<CONFIG:Debug>:-fsanitize=address,undefined>"
+    "$<$<CONFIG:Release>:-pie;-Wl,-z,relro;-Wl,-z,now>"
+  )
+endfunction()
+
 add_executable(eunha ${EUNHA_SOURCES})
+eunha_configure_target(eunha)
 
-target_compile_options(eunha PRIVATE
-  -Wall
-  -Wextra
-  -Wpedantic
-  -Walloca
-  -Warray-bounds
-  -Wcast-align
-  -Wcast-qual
-  -Wcomma
-  -Wconversion
-  -Wdouble-promotion
-  -Wformat=2
-  -Wimplicit-fallthrough
-  -Wmissing-prototypes
-  -Wnull-dereference
-  -Wpointer-arith
-  -Wshadow
-  -Wsign-conversion
-  -Wstrict-prototypes
-  -Wswitch-enum
-  -Wundef
-  -Wunreachable-code
-  -Wvla
-  -Wwrite-strings
-  "$<$<CONFIG:Debug>:-Og;-Werror;-fsanitize=address,undefined;-fno-omit-frame-pointer>"
-  "$<$<CONFIG:Release>:-UNDEBUG;-O2;-fstack-protector-strong;-fPIE>"
-)
+include(CTest)
 
-target_compile_definitions(eunha PRIVATE
-  "$<$<CONFIG:Release>:_FORTIFY_SOURCE=3>"
-)
-
-target_link_options(eunha PRIVATE
-  "$<$<CONFIG:Debug>:-fsanitize=address,undefined>"
-  "$<$<CONFIG:Release>:-pie;-Wl,-z,relro;-Wl,-z,now>"
-)
+if(BUILD_TESTING)
+  add_executable(base_string_test
+    tests/base/base_string_test.c
+    src/base/base_string.c
+  )
+  eunha_configure_target(base_string_test)
+  add_test(NAME base_string COMMAND base_string_test)
+endif()
 
 install(TARGETS eunha RUNTIME DESTINATION bin)

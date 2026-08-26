@@ -19,23 +19,38 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-{inputs, ...}: {
-  imports = [inputs.git-hooks.flakeModule];
 
-  perSystem = {config, ...}: {
-    pre-commit = {
-      check.enable = true;
-      settings.hooks = {
-        alejandra.enable = true;
-        clang-format.enable = true;
-        eunha-check = {
-          enable = true;
-          name = "eunha-check";
-          entry = "${config.packages.check}/bin/eunha-check";
-          always_run = true;
-          pass_filenames = false;
-        };
-      };
-    };
-  };
-}
+BasedOnStyle: LLVM
+AccessModifierOffset: -4
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignEscapedNewlines: Left
+AlignOperands: true
+AlignTrailingComments: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortBlocksOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakAfterDefinitionReturnType: None
+AlwaysBreakAfterReturnType: None
+AlwaysBreakBeforeMultilineStrings: false
+AlwaysBreakTemplateDeclarations: false
+BinPackArguments: true
+BinPackParameters: true
+ColumnLimit: 80
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^<.*>$'
+    Priority: 1
+  - Regex: '^".*"$'
+    Priority: 2
+IncludeIsMainRegex: 'a^'
+IndentWidth: 4
+MaxEmptyLinesToKeep: 1
+PointerAlignment: Left
+SortIncludes: CaseSensitive
+TabWidth: 4
+UseTab: Never

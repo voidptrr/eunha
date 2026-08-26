@@ -1,3 +1,5 @@
+#!/usr/bin/env sh
+
 # MIT License
 #
 # Copyright (c) 2026 Tommaso Bruno
@@ -19,23 +21,10 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-{inputs, ...}: {
-  imports = [inputs.git-hooks.flakeModule];
 
-  perSystem = {config, ...}: {
-    pre-commit = {
-      check.enable = true;
-      settings.hooks = {
-        alejandra.enable = true;
-        clang-format.enable = true;
-        eunha-check = {
-          enable = true;
-          name = "eunha-check";
-          entry = "${config.packages.check}/bin/eunha-check";
-          always_run = true;
-          pass_filenames = false;
-        };
-      };
-    };
-  };
-}
+set -eu
+
+cmake --preset debug
+cmake --build --preset debug
+ctest --test-dir build/debug --output-on-failure
+find src tests -type f -name '*.c' -exec clang-tidy -p build/debug {} +

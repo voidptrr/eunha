@@ -33,31 +33,48 @@
         ../src
       ];
     };
-  in {
-    packages.default = pkgs.clangStdenv.mkDerivation {
-      pname = "eunha";
-      version = "0.1.0";
+    mkEunha = cmakeBuildType:
+      pkgs.clangStdenv.mkDerivation {
+        pname = "eunha";
+        version = "0.1.0";
 
-      inherit src;
+        inherit cmakeBuildType src;
 
-      nativeBuildInputs = with pkgs; [
-        cmake
-        ninja
-      ];
-
-      cmakeBuildType = "Release";
-
-      meta = with pkgs.lib; {
-        homepage = "https://github.com/voidptrr/eunha";
-        license = licenses.mit;
-        mainProgram = "eunha";
-        maintainers = [
-          {
-            name = "Tommaso Bruno";
-            github = "voidptrr";
-          }
+        nativeBuildInputs = with pkgs; [
+          cmake
+          ninja
         ];
-        platforms = platforms.linux;
+
+        cmakeFlags = ["-DBUILD_TESTING=OFF"];
+        doCheck = false;
+
+        meta = with pkgs.lib; {
+          homepage = "https://github.com/voidptrr/eunha";
+          license = licenses.mit;
+          mainProgram = "eunha";
+          maintainers = [
+            {
+              name = "Tommaso Bruno";
+              github = "voidptrr";
+            }
+          ];
+          platforms = platforms.linux;
+        };
+      };
+  in {
+    packages = {
+      default = mkEunha "Release";
+      debug = mkEunha "Debug";
+      check = pkgs.writeShellApplication {
+        name = "eunha-check";
+        runtimeInputs = with pkgs; [
+          cmake
+          clang
+          clang-tools
+          findutils
+          ninja
+        ];
+        text = builtins.readFile ../scripts/check.sh;
       };
     };
 

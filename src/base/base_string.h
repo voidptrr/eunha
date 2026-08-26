@@ -22,9 +22,33 @@
  * SOFTWARE.
  */
 
-#include <stdio.h>
+#ifndef BASE_STRING
+#define BASE_STRING
 
-int main(void) {
-    printf("%s", "Working");
-    return 0;
-}
+#include <stddef.h>
+
+struct string_t {
+    size_t len;
+    size_t capacity;
+    char* data;
+};
+
+/**
+ * Allocates an owned string from null-terminated bytes, or an empty string when
+ * initialized with NULL. Exits the process if allocation fails.
+ */
+struct string_t* string_init(const char* initial);
+
+/** Returns the string length in bytes, excluding the null terminator. */
+size_t string_len(const struct string_t* string);
+
+/**
+ * Appends null-terminated bytes, growing the destination as needed. The source
+ * must not point into the destination's backing storage.
+ */
+void string_append(struct string_t* dst, const char* src);
+
+/** Frees an owned string and its backing storage. */
+void string_deinit(struct string_t* string);
+
+#endif
