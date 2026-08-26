@@ -25,7 +25,6 @@
   ];
 
   flake.actions-nix = {
-    pre-commit.enable = true;
     workflows = {
       ".github/workflows/checks.yml" = {
         name = "checks";
@@ -45,7 +44,7 @@
             {uses = "DeterminateSystems/magic-nix-cache-action@main";}
             {
               name = "Run checks";
-              run = "nix flake check";
+              run = "nix develop -c pre-checks";
             }
           ];
         };

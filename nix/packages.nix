@@ -20,34 +20,51 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 {
-  perSystem = {
-    config,
-    pkgs,
-    ...
-  }: let
+  perSystem = {pkgs, ...}: let
+    build = pkgs.writeShellApplication {
+      name = "build";
+      runtimeInputs = [pkgs.clang];
+      text = builtins.readFile ../scripts/build;
+    };
+    pre-checks = pkgs.writeShellApplication {
+      name = "pre-checks";
+      runtimeInputs = with pkgs; [
+        alejandra
+        bear
+        clang
+        clang-tools
+        findutils
+      ];
+      text = builtins.readFile ../scripts/pre-checks;
+    };
     src = pkgs.lib.fileset.toSource {
       root = ../.;
       fileset = pkgs.lib.fileset.unions [
-        ../CMakeLists.txt
         ../LICENSE
-        ../cmake
         ../src
       ];
     };
-    mkEunha = cmakeBuildType:
+    mkEunha = mode:
       pkgs.clangStdenv.mkDerivation {
         pname = "eunha";
         version = "0.1.0";
 
-        inherit cmakeBuildType src;
+        inherit src;
 
-        nativeBuildInputs = with pkgs; [
-          cmake
-          ninja
-        ];
+        nativeBuildInputs = [build];
+        dontConfigure = true;
 
-        cmakeFlags = ["-DBUILD_TESTING=OFF"];
-        doCheck = false;
+        buildPhase = ''
+          runHook preBuild
+          build ${mode}
+          runHook postBuild
+        '';
+
+        installPhase = ''
+          runHook preInstall
+          install -Dm755 build/${mode}/eunha "$out/bin/eunha"
+          runHook postInstall
+        '';
 
         meta = with pkgs.lib; {
           homepage = "https://github.com/voidptrr/eunha";
@@ -64,25 +81,9 @@
       };
   in {
     packages = {
-      default = mkEunha "Release";
-      debug = mkEunha "Debug";
-      pre-checks = pkgs.writeShellApplication {
-        name = "pre-checks";
-        runtimeInputs = with pkgs; [
-          cmake
-          clang
-          clang-tools
-          findutils
-          ninja
-        ];
-        text = builtins.readFile ../scripts/check.sh;
-      };
-    };
-
-    apps.default = {
-      type = "app";
-      program = config.packages.default;
-      meta.description = "Run eunha";
+      inherit build pre-checks;
+      default = mkEunha "release";
+      debug = mkEunha "debug";
     };
   };
 }

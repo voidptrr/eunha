@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # MIT License
 #
 # Copyright (c) 2026 Tommaso Bruno
@@ -20,14 +22,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-include_guard(GLOBAL)
+set -eu
 
-function(eunha_configure_target target)
-  target_include_directories(${target} PRIVATE
-    "${PROJECT_SOURCE_DIR}/src"
-  )
+usage() {
+    echo "usage: build [debug|release|tests]" >&2
+    exit 1
+}
 
-  target_compile_options(${target} PRIVATE
+(( $# <= 1 )) || usage
+
+common_flags=(
+    -std=c23
+    -Isrc
     -Wall
     -Wextra
     -Wpedantic
@@ -51,16 +57,66 @@ function(eunha_configure_target target)
     -Wunreachable-code
     -Wvla
     -Wwrite-strings
-    "$<$<CONFIG:Debug>:-Og;-Werror;-fsanitize=address,undefined;-fno-omit-frame-pointer>"
-    "$<$<CONFIG:Release>:-UNDEBUG;-O2;-fstack-protector-strong;-fPIE>"
-  )
+)
 
-  target_compile_definitions(${target} PRIVATE
-    "$<$<CONFIG:Release>:_FORTIFY_SOURCE=3>"
-  )
+debug_flags=(
+    -g
+    -Og
+    -Werror
+    '-fsanitize=address,undefined'
+    -fno-omit-frame-pointer
+)
 
-  target_link_options(${target} PRIVATE
-    "$<$<CONFIG:Debug>:-fsanitize=address,undefined>"
-    "$<$<CONFIG:Release>:-pie;-Wl,-z,relro;-Wl,-z,now>"
-  )
-endfunction()
+release_flags=(
+    -O2
+    -UNDEBUG
+    -D_FORTIFY_SOURCE=3
+    -fstack-protector-strong
+    -fPIE
+    -pie
+    '-Wl,-z,relro'
+    '-Wl,-z,now'
+)
+
+shopt -s globstar nullglob
+app_sources=(src/**/*.c)
+test_sources=(tests/**/*_test.c)
+module_sources=()
+
+for source in "${app_sources[@]}"; do
+    [[ "$source" == "src/main.c" ]] || module_sources+=("$source")
+done
+
+build_app() {
+    local mode=$1
+    shift
+
+    mkdir -p "build/$mode"
+    clang "${common_flags[@]}" "$@" "${app_sources[@]}" -o "build/$mode/eunha"
+}
+
+build_tests() {
+    local source target
+
+    for source in "${test_sources[@]}"; do
+        target="build/${source%.c}"
+        mkdir -p "${target%/*}"
+        clang "${common_flags[@]}" "${debug_flags[@]}" \
+            "${module_sources[@]}" "$source" -o "$target"
+    done
+}
+
+case "${1:-debug}" in
+    debug)
+        build_app debug "${debug_flags[@]}"
+        ;;
+    release)
+        build_app release "${release_flags[@]}"
+        ;;
+    tests)
+        build_tests
+        ;;
+    *)
+        usage
+        ;;
+esac

@@ -22,6 +22,6 @@
 
 .cache
 .DS_Store
-.pre-commit-config.yaml
 build/
+compile_commands.json
 result

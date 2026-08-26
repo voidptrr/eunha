@@ -26,14 +26,11 @@
     ...
   }: {
     devShells.default = pkgs.mkShell {
-      shellHook = config.pre-commit.installationScript;
       CPATH = pkgs.lib.makeSearchPath "include" [pkgs.glibc.dev];
-      packages = with pkgs; [
-        alejandra
-        cmake
-        clang
-        clang-tools
-        ninja
+      packages = [
+        pkgs.clang
+        pkgs.clang-tools
+        config.packages.build
         config.packages.pre-checks
       ];
     };

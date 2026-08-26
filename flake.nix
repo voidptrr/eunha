@@ -33,14 +33,8 @@
       url = "github:nialov/actions.nix";
       inputs = {
         flake-parts.follows = "flake-parts";
-        git-hooks.follows = "git-hooks";
         nixpkgs.follows = "nixpkgs";
       };
-    };
-
-    git-hooks = {
-      url = "github:cachix/git-hooks.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 

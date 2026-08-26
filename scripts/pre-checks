@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 # MIT License
 #
@@ -24,7 +24,17 @@
 
 set -eu
 
-cmake --preset debug
-cmake --build --preset debug
-ctest --test-dir build/debug --output-on-failure
-find src tests -type f -name '*.c' -exec clang-tidy -p build/debug {} +
+alejandra --check .
+find src tests -type f \( -name '*.c' -o -name '*.h' \) \
+    -exec clang-format --dry-run --Werror {} +
+
+bear --output compile_commands.json -- ./scripts/build debug
+./scripts/build tests
+
+shopt -s globstar nullglob
+test_sources=(tests/**/*_test.c)
+for source in "${test_sources[@]}"; do
+    "build/${source%.c}"
+done
+
+find src tests -type f -name '*.c' -exec clang-tidy -p . {} +
