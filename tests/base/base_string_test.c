@@ -106,7 +106,7 @@ static void test_append_with_growth(void) {
     string_deinit(string);
 }
 
-static void test_repeated_growth_boundaries(void) {
+static void test_repeated_append_growth_boundaries(void) {
     struct string_t* string = string_init(NULL);
 
     string_append(string, "12345678");
@@ -124,7 +124,7 @@ static void test_repeated_growth_boundaries(void) {
     string_deinit(string);
 }
 
-static void test_large_string(void) {
+static void test_large_append(void) {
     char initial[257];
     char suffix[257];
     memset(initial, 'a', sizeof(initial) - 1);
@@ -144,6 +144,98 @@ static void test_large_string(void) {
     string_deinit(string);
 }
 
+static void test_empty_prepend(void) {
+    char source[] = "";
+    struct string_t* string = string_init("hello");
+
+    string_prepend(string, source);
+    expect_string(string, "hello", DEFAULT_CAPACITY);
+
+    string_deinit(string);
+}
+
+static void test_prepend_to_empty_string(void) {
+    char source[] = "hello";
+    struct string_t* string = string_init(NULL);
+
+    string_prepend(string, source);
+    expect_string(string, "hello", DEFAULT_CAPACITY);
+
+    string_deinit(string);
+}
+
+static void test_prepend_without_growth(void) {
+    char source[] = "abc";
+    struct string_t* string = string_init("def");
+
+    string_prepend(string, source);
+    expect_string(string, "abcdef", DEFAULT_CAPACITY);
+    assert(strcmp(source, "abc") == 0);
+
+    string_deinit(string);
+}
+
+static void test_prepend_at_capacity_boundary(void) {
+    char source[] = "1234";
+    struct string_t* string = string_init("5678");
+
+    string_prepend(string, source);
+    expect_string(string, "12345678", DEFAULT_CAPACITY);
+
+    string_deinit(string);
+}
+
+static void test_prepend_with_growth(void) {
+    char source[] = "1";
+    struct string_t* string = string_init("23456789");
+
+    string_prepend(string, source);
+    expect_string(string, "123456789", 18);
+
+    string_deinit(string);
+}
+
+static void test_repeated_prepend_growth_boundaries(void) {
+    char first[] = "12345678";
+    char second[] = "9";
+    char third[] = "abcdefghi";
+    char fourth[] = "j";
+    struct string_t* string = string_init(NULL);
+
+    string_prepend(string, first);
+    expect_string(string, "12345678", DEFAULT_CAPACITY);
+
+    string_prepend(string, second);
+    expect_string(string, "912345678", 18);
+
+    string_prepend(string, third);
+    expect_string(string, "abcdefghi912345678", 18);
+
+    string_prepend(string, fourth);
+    expect_string(string, "jabcdefghi912345678", 38);
+
+    string_deinit(string);
+}
+
+static void test_large_prepend(void) {
+    char initial[257];
+    char prefix[257];
+    memset(initial, 'a', sizeof(initial) - 1);
+    memset(prefix, 'b', sizeof(prefix) - 1);
+    initial[sizeof(initial) - 1] = '\0';
+    prefix[sizeof(prefix) - 1] = '\0';
+
+    struct string_t* string = string_init(initial);
+    string_prepend(string, prefix);
+
+    assert(string_len(string) == 512);
+    assert(string->capacity == 1024);
+    assert(memcmp(string->data, prefix, 256) == 0);
+    assert(memcmp(string->data + 256, initial, 257) == 0);
+
+    string_deinit(string);
+}
+
 int main(void) {
     test_empty_initialization();
     test_initial_content_and_capacity();
@@ -151,7 +243,14 @@ int main(void) {
     test_append_without_growth();
     test_append_at_capacity_boundary();
     test_append_with_growth();
-    test_repeated_growth_boundaries();
-    test_large_string();
+    test_repeated_append_growth_boundaries();
+    test_large_append();
+    test_empty_prepend();
+    test_prepend_to_empty_string();
+    test_prepend_without_growth();
+    test_prepend_at_capacity_boundary();
+    test_prepend_with_growth();
+    test_repeated_prepend_growth_boundaries();
+    test_large_prepend();
     return 0;
 }

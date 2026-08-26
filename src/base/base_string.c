@@ -32,6 +32,21 @@
 
 #define DEFAULT_CAPACITY 8
 
+static int string_grow(struct string_t* dst, size_t final_len) {
+    if (ckd_mul(&dst->capacity, final_len, 2)) {
+        return 1;
+    }
+
+    char* tmp = realloc(dst->data, dst->capacity + 1);
+    if (tmp == NULL) {
+        return 1;
+    }
+
+    dst->data = tmp;
+
+    return 0;
+}
+
 struct string_t* string_init(const char* initial) {
     size_t initial_len = initial != NULL ? strlen(initial) : 0;
     struct string_t* string = malloc(sizeof(struct string_t));
@@ -76,25 +91,36 @@ void string_append(struct string_t* dst, const char* src) {
         exit(EXIT_FAILURE);
     }
 
-    size_t capacity = dst->capacity;
-    if (final_len > capacity) {
-        if (ckd_mul(&dst->capacity, final_len, 2)) {
-            string_deinit(dst);
-            exit(EXIT_FAILURE);
-        }
-
-        char* tmp = realloc(dst->data, dst->capacity + 1);
-        if (tmp == NULL) {
-            string_deinit(dst);
-            exit(EXIT_FAILURE);
-        }
-
-        dst->data = tmp;
+    if (final_len > dst->capacity && string_grow(dst, final_len)) {
+        string_deinit(dst);
+        exit(EXIT_FAILURE);
     }
 
     memmove(dst->data + dst_len, src, src_len);
     dst->len = final_len;
     dst->data[final_len] = '\0';
+}
+
+void string_prepend(struct string_t* dst, const char* src) {
+    assert(dst != NULL);
+    assert(src != NULL);
+
+    size_t src_len = strlen(src);
+    size_t dst_len = string_len(dst);
+    size_t final_len = 0;
+    if (ckd_add(&final_len, dst_len, src_len)) {
+        string_deinit(dst);
+        exit(EXIT_FAILURE);
+    }
+
+    if (final_len > dst->capacity && string_grow(dst, final_len)) {
+        string_deinit(dst);
+        exit(EXIT_FAILURE);
+    }
+
+    memmove(dst->data + src_len, dst->data, dst_len + 1);
+    memcpy(dst->data, src, src_len);
+    dst->len = final_len;
 }
 
 void string_deinit(struct string_t* string) {

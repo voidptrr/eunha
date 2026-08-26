@@ -48,6 +48,12 @@ size_t string_len(const struct string_t* string);
  */
 void string_append(struct string_t* dst, const char* src);
 
+/**
+ * Prepend null-terminated bytes, growing the destination as needed. The source
+ * must not point into the destination's backing storage.
+ */
+void string_prepend(struct string_t* dst, const char* src);
+
 /** Frees an owned string and its backing storage. */
 void string_deinit(struct string_t* string);
 
