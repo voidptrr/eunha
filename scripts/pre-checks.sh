@@ -28,8 +28,8 @@ alejandra --check .
 find src tests -type f \( -name '*.c' -o -name '*.h' \) \
     -exec clang-format --dry-run --Werror {} +
 
-bear --output compile_commands.json -- ./scripts/build debug
-./scripts/build tests
+bear --output compile_commands.json -- ./scripts/build.sh debug
+./scripts/build.sh tests
 
 shopt -s globstar nullglob
 test_sources=(tests/**/*_test.c)

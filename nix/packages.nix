@@ -24,7 +24,7 @@
     build = pkgs.writeShellApplication {
       name = "build";
       runtimeInputs = [pkgs.clang];
-      text = builtins.readFile ../scripts/build;
+      text = builtins.readFile ../scripts/build.sh;
     };
     pre-checks = pkgs.writeShellApplication {
       name = "pre-checks";
@@ -35,7 +35,7 @@
         clang-tools
         findutils
       ];
-      text = builtins.readFile ../scripts/pre-checks;
+      text = builtins.readFile ../scripts/pre-checks.sh;
     };
     src = pkgs.lib.fileset.toSource {
       root = ../.;
