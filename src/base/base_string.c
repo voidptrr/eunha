@@ -32,6 +32,10 @@
 
 #define DEFAULT_CAPACITY 8
 
+/**
+ * INTERNAL HELPERS
+ */
+
 static int string_grow(struct string_t* dst, size_t final_len) {
     if (ckd_mul(&dst->capacity, final_len, 2)) {
         return 1;
@@ -46,6 +50,10 @@ static int string_grow(struct string_t* dst, size_t final_len) {
 
     return 0;
 }
+
+/**
+ * STRING METHODS
+ */
 
 struct string_t* string_init(const char* initial) {
     size_t initial_len = initial != NULL ? strlen(initial) : 0;
@@ -146,4 +154,30 @@ void string_deinit(struct string_t* string) {
     }
 
     free(string);
+}
+
+/**
+ * ITERATOR METHODS
+ */
+
+struct string_iterator_t string_iterator_init(const struct string_t* string) {
+    assert(string != NULL);
+
+    struct string_iterator_t iter = {
+        .current_index = 0,
+        .len = string->len,
+        .data = string->data,
+    };
+
+    return iter;
+}
+
+bool string_iterator_next(struct string_iterator_t* iter, char* element) {
+    if (iter->current_index >= iter->len) {
+        return false;
+    }
+
+    *element = iter->data[iter->current_index++];
+
+    return true;
 }

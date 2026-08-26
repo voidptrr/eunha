@@ -33,6 +33,16 @@ struct string_t {
     char* data;
 };
 
+struct string_iterator_t {
+    size_t current_index;
+    size_t len;
+    const char* data;
+};
+
+/**
+ * STRING METHODS
+ */
+
 /**
  * Allocates an owned string from null-terminated bytes, or an empty string when
  * initialized with NULL. Exits the process if allocation fails.
@@ -67,5 +77,15 @@ bool string_starts_with(const struct string_t* string, const char* prefix);
 
 /** Frees an owned string and its backing storage. */
 void string_deinit(struct string_t* string);
+
+/**
+ * ITERATOR METHODS
+ */
+
+/** Returns iterator from string. */
+struct string_iterator_t string_iterator_init(const struct string_t* string);
+
+/** Returns next element in the string buffer. */
+bool string_iterator_next(struct string_iterator_t* iter, char* element);
 
 #endif
