@@ -33,21 +33,21 @@ static void test_alignment_and_typed_pushes(void) {
     struct arena* arena = arena_alloc(ARENA_DEFAULT);
     assert(arena != NULL);
 
-    uint8_t* byte = arena_push(arena, sizeof(*byte), alignof(uint8_t));
-    uint64_t* word = arena_push(arena, sizeof(*word), alignof(uint64_t));
+    u8* byte = arena_push_type(arena, u8);
+    u64* word = arena_push_type(arena, u64);
     void* page_aligned = arena_push(arena, 1, 4096);
-    uint64_t* words = arena_push_array(arena, uint64_t, 8);
-    uint32_t* number = arena_push_struct(arena, uint32_t);
+    u64* words = arena_push_array(arena, u64, 8);
+    u32* number = arena_push_type(arena, u32);
 
     assert(byte != NULL);
     assert(word != NULL);
-    assert((uintptr_t)word % alignof(uint64_t) == 0);
+    assert((uintptr_t)word % alignof(u64) == 0);
     assert(page_aligned != NULL);
     assert((uintptr_t)page_aligned % 4096 == 0);
     assert(words != NULL);
-    assert((uintptr_t)words % alignof(uint64_t) == 0);
+    assert((uintptr_t)words % alignof(u64) == 0);
     assert(number != NULL);
-    assert((uintptr_t)number % alignof(uint32_t) == 0);
+    assert((uintptr_t)number % alignof(u32) == 0);
 
     arena_free(arena);
 }

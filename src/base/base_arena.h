@@ -27,7 +27,8 @@
 
 #include <stdalign.h>
 #include <stddef.h>
-#include <stdint.h>
+
+#include "base/base_core.h"
 
 enum arena_flags {
     ARENA_DEFAULT = 0,
@@ -38,7 +39,7 @@ struct arena_region {
     struct arena_region* prev;
     size_t capacity;
     size_t offset;
-    uint8_t data[];
+    u8 data[];
 };
 
 struct arena {
@@ -48,7 +49,7 @@ struct arena {
 };
 
 /** Pushes uninitialized storage for one object of type. */
-#define arena_push_struct(arena, type) \
+#define arena_push_type(arena, type) \
     ((type*)arena_push((arena), sizeof(type), alignof(type)))
 
 /**
