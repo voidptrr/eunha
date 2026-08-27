@@ -22,8 +22,8 @@
  * SOFTWARE.
  */
 
-#ifndef BASE_STRING
-#define BASE_STRING
+#ifndef BASE_STRING_H
+#define BASE_STRING_H
 
 #include <stddef.h>
 

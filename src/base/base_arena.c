@@ -1,0 +1,138 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 Tommaso Bruno
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+#include <assert.h>
+#include <stdckdint.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+#include "base/base_arena.h"
+#include "base/base_core.h"
+
+static void* arena_region_push(struct arena_region* region, size_t size,
+                               size_t alignment) {
+    assert(region != NULL);
+    assert(region->offset <= region->capacity);
+
+    /* The flexible array may not begin at the requested alignment, so align
+     * the actual address rather than the region-relative offset. */
+    uintptr_t current_address = (uintptr_t)(region->data + region->offset);
+    size_t padding = (size_t)align_pad_pow2(current_address, alignment);
+    size_t available = region->capacity - region->offset;
+
+    /* Test padding first to keep the following unsigned subtraction safe. */
+    if (padding > available || size > available - padding) {
+        return NULL;
+    }
+
+    void* result = region->data + region->offset + padding;
+    region->offset += padding + size;
+    return result;
+}
+
+static struct arena_region* arena_region_alloc(size_t capacity) {
+    /* Allocate the header and flexible byte buffer together. */
+    size_t allocation_size = 0;
+    if (ckd_add(&allocation_size, sizeof(struct arena_region), capacity)) {
+        return NULL;
+    }
+
+    struct arena_region* region = malloc(allocation_size);
+    if (region == NULL) {
+        return NULL;
+    }
+
+    region->prev = NULL;
+    region->capacity = capacity;
+    region->offset = 0;
+    return region;
+}
+
+struct arena* arena_alloc(enum arena_flags flags) {
+    struct arena* arena = malloc(sizeof(struct arena));
+    arena->block_capacity = kb(64);
+    arena->flags = flags;
+    arena->current = NULL;
+
+    return arena;
+}
+
+void* arena_push(struct arena* arena, size_t size, size_t alignment) {
+    assert(arena != NULL);
+    assert(is_pow2(alignment));
+
+    /* The current region is the only region used for new pushes. */
+    struct arena_region* region = arena->current;
+    void* result =
+        region != NULL ? arena_region_push(region, size, alignment) : NULL;
+    if (result != NULL) {
+        return result;
+    }
+
+    if (region != NULL && (arena->flags & NO_CHAIN) != 0) {
+        return NULL;
+    }
+
+    /* A new region must accommodate the request and worst-case alignment
+     * padding, whose maximum is alignment - 1 bytes. */
+    size_t required_capacity = 0;
+    if (ckd_add(&required_capacity, size, alignment - (size_t)1)) {
+        return NULL;
+    }
+
+    /* Chained arenas give unusually large pushes a dedicated larger region. */
+    size_t region_capacity = arena->block_capacity;
+    if ((arena->flags & NO_CHAIN) == 0 && required_capacity > region_capacity) {
+        region_capacity = required_capacity;
+    }
+
+    struct arena_region* new_region = arena_region_alloc(region_capacity);
+    if (new_region == NULL) {
+        return NULL;
+    }
+
+    /* Do not link the new region until its first push succeeds, leaving the
+     * arena unchanged if a fixed-size region cannot satisfy the request. */
+    result = arena_region_push(new_region, size, alignment);
+    if (result == NULL) {
+        free(new_region);
+        return NULL;
+    }
+
+    new_region->prev = region;
+    arena->current = new_region;
+    return result;
+}
+
+void arena_free(struct arena* arena) {
+    assert(arena != NULL);
+
+    /* Regions form a stack from newest to oldest through prev. */
+    while (arena->current != NULL) {
+        struct arena_region* region = arena->current;
+        arena->current = region->prev;
+        free(region);
+    }
+    free(arena);
+}
