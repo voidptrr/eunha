@@ -35,6 +35,17 @@ static bool str8_is_valid(struct str8 str) {
     return (str.len == 0 || str.data != NULL) != 0;
 }
 
+static u8* str8_push_buffer(struct arena* arena, size_t len) {
+    assert(arena != NULL);
+
+    size_t allocation_size = 0;
+    if (ckd_add(&allocation_size, len, (size_t)1)) {
+        return NULL;
+    }
+
+    return arena_push_array(arena, u8, allocation_size);
+}
+
 struct str8 str8(const u8* data, size_t len) {
     assert(data != NULL || len == 0);
     return (struct str8){
@@ -54,17 +65,6 @@ struct str8 str8_cstring(const char* cstr) {
 size_t str8_len(struct str8 str) {
     assert(str8_is_valid(str));
     return str.len;
-}
-
-static u8* str8_push_buffer(struct arena* arena, size_t len) {
-    assert(arena != NULL);
-
-    size_t allocation_size = 0;
-    if (ckd_add(&allocation_size, len, (size_t)1)) {
-        return NULL;
-    }
-
-    return arena_push_array(arena, u8, allocation_size);
 }
 
 struct str8 str8_copy(struct arena* arena, struct str8 source) {
