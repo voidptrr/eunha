@@ -43,7 +43,7 @@ static void test_empty_string(void) {
 
 static void test_visits_each_character(void) {
     const u8 expected[] = "eunha";
-    struct str8 string = str8(expected, sizeof(expected) - (size_t)1);
+    struct str8 string = str8_lit("eunha");
     const u8* element;
     size_t index = 0;
 

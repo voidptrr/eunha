@@ -29,7 +29,7 @@
 
 #include "base/base_arena.h"
 #include "base/base_core.h"
-#include "base_string.h"
+#include "base/base_string.h"
 
 static bool str8_is_valid(struct str8 str) {
     return (str.len == 0 || str.data != NULL) != 0;
