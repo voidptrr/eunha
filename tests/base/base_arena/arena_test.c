@@ -99,7 +99,7 @@ static void test_overflow_does_not_add_region(void)
 
 static void test_no_grow_uses_one_region(void)
 {
-    struct arena *arena = arena_alloc_with_flags(NO_CHAIN);
+    struct arena *arena = arena_alloc(.flags = NO_CHAIN);
     assert(arena != NULL);
     assert(arena_push(arena, kb(64), 1) != NULL);
 
@@ -113,7 +113,7 @@ static void test_no_grow_uses_one_region(void)
 
 static void test_no_grow_rejects_oversized_first_push(void)
 {
-    struct arena *arena = arena_alloc_with_flags(NO_CHAIN);
+    struct arena *arena = arena_alloc(.flags = NO_CHAIN);
     assert(arena != NULL);
     assert(arena_push(arena, kb(64) + 1, 1) == NULL);
     assert(arena->current == NULL);

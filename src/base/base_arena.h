@@ -34,6 +34,10 @@ enum arena_flags {
     NO_CHAIN = 1 << 0,
 };
 
+struct arena_params {
+    enum arena_flags flags;
+};
+
 struct arena_region {
     struct arena_region *prev;
     size_t base_position;
@@ -64,11 +68,14 @@ struct arena_temp {
 #define arena_push_array(arena, type, item_count) \
     ((type *)arena_push((arena), sizeof(type) * (item_count), alignof(type)))
 
-/** Creates a growable arena whose regions are allocated lazily on first use. */
-struct arena *arena_alloc(void);
+/** Implementation entry point for the arena_alloc parameter macro. */
+struct arena *arena_alloc_(const struct arena_params *params);
 
-/** Creates an arena with the requested optional behavior flags. */
-struct arena *arena_alloc_with_flags(enum arena_flags flags);
+/**
+ * Creates an arena from optional designated arena_params fields. With no
+ * fields, the arena grows by chaining lazily allocated regions.
+ */
+#define arena_alloc(...) arena_alloc_(&(struct arena_params){ __VA_ARGS__ })
 
 /**
  * Returns size bytes of uninitialized arena storage beginning at an address

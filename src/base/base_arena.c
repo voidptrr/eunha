@@ -74,16 +74,13 @@ static struct arena_region *arena_region_alloc(size_t capacity)
     return region;
 }
 
-struct arena *arena_alloc(void)
+struct arena *arena_alloc_(const struct arena_params *params)
 {
-    return arena_alloc_with_flags((enum arena_flags)0);
-}
+    assert(params != NULL);
 
-struct arena *arena_alloc_with_flags(enum arena_flags flags)
-{
     struct arena *arena = malloc(sizeof(struct arena));
     arena->block_capacity = kb(64);
-    arena->flags = flags;
+    arena->flags = params->flags;
     arena->current = NULL;
 
     return arena;
