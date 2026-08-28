@@ -41,7 +41,7 @@ static void expect_str8(struct str8 string, const char *expected)
 
 static void test_push(void)
 {
-    struct arena *arena = arena_alloc(ARENA_DEFAULT);
+    struct arena *arena = arena_alloc();
     struct str8 first = str8_lit("hello");
     struct str8 second = str8_lit(", ");
     struct str8 third = str8_lit("world");
@@ -69,7 +69,7 @@ static void test_push(void)
 
 static void test_join(void)
 {
-    struct arena *arena = arena_alloc(ARENA_DEFAULT);
+    struct arena *arena = arena_alloc();
     u8 first_bytes[] = { 'h', 'e', 'l', 'l', 'o' };
     struct str8 first = str8(first_bytes, sizeof(first_bytes));
     struct str8_list list = { 0 };
@@ -92,7 +92,7 @@ static void test_join(void)
 
 static void test_join_empty(void)
 {
-    struct arena *arena = arena_alloc(ARENA_DEFAULT);
+    struct arena *arena = arena_alloc();
     struct str8_list list = { 0 };
     struct str8 joined = str8_list_join(arena, &list);
 

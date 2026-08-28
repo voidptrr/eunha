@@ -32,7 +32,7 @@
 
 static void test_alignment_and_typed_pushes(void)
 {
-    struct arena *arena = arena_alloc(ARENA_DEFAULT);
+    struct arena *arena = arena_alloc();
     assert(arena != NULL);
 
     u8 *byte = arena_push_type(arena, u8);
@@ -62,7 +62,7 @@ static void test_alignment_and_typed_pushes(void)
 
 static void test_oversized_push_adds_region(void)
 {
-    struct arena *arena = arena_alloc(ARENA_DEFAULT);
+    struct arena *arena = arena_alloc();
     assert(arena != NULL);
     assert(arena_push(arena, 1, 1) != NULL);
 
@@ -86,7 +86,7 @@ static void test_oversized_push_adds_region(void)
 
 static void test_overflow_does_not_add_region(void)
 {
-    struct arena *arena = arena_alloc(ARENA_DEFAULT);
+    struct arena *arena = arena_alloc();
     assert(arena != NULL);
     assert(arena_push(arena, 1, 1) != NULL);
 
@@ -99,7 +99,7 @@ static void test_overflow_does_not_add_region(void)
 
 static void test_no_grow_uses_one_region(void)
 {
-    struct arena *arena = arena_alloc(NO_CHAIN);
+    struct arena *arena = arena_alloc_with_flags(NO_CHAIN);
     assert(arena != NULL);
     assert(arena_push(arena, kb(64), 1) != NULL);
 
@@ -113,7 +113,7 @@ static void test_no_grow_uses_one_region(void)
 
 static void test_no_grow_rejects_oversized_first_push(void)
 {
-    struct arena *arena = arena_alloc(NO_CHAIN);
+    struct arena *arena = arena_alloc_with_flags(NO_CHAIN);
     assert(arena != NULL);
     assert(arena_push(arena, kb(64) + 1, 1) == NULL);
     assert(arena->current == NULL);
@@ -127,7 +127,7 @@ static void test_no_grow_rejects_oversized_first_push(void)
 
 static void test_empty_arena_position_is_zero(void)
 {
-    struct arena *arena = arena_alloc(ARENA_DEFAULT);
+    struct arena *arena = arena_alloc();
     assert(arena != NULL);
     assert(arena_position(arena) == 0);
 
@@ -136,7 +136,7 @@ static void test_empty_arena_position_is_zero(void)
 
 static void test_pop_restores_position_in_current_region(void)
 {
-    struct arena *arena = arena_alloc(ARENA_DEFAULT);
+    struct arena *arena = arena_alloc();
     assert(arena != NULL);
     assert(arena_push(arena, 32, 1) != NULL);
 
@@ -162,7 +162,7 @@ static void test_pop_restores_position_in_current_region(void)
 
 static void test_temp_end_restores_position_across_regions(void)
 {
-    struct arena *arena = arena_alloc(ARENA_DEFAULT);
+    struct arena *arena = arena_alloc();
     assert(arena != NULL);
     assert(arena_push(arena, 1, 1) != NULL);
 

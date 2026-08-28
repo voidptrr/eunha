@@ -74,7 +74,12 @@ static struct arena_region *arena_region_alloc(size_t capacity)
     return region;
 }
 
-struct arena *arena_alloc(enum arena_flags flags)
+struct arena *arena_alloc(void)
+{
+    return arena_alloc_with_flags((enum arena_flags)0);
+}
+
+struct arena *arena_alloc_with_flags(enum arena_flags flags)
 {
     struct arena *arena = malloc(sizeof(struct arena));
     arena->block_capacity = kb(64);

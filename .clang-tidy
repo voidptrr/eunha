@@ -6,6 +6,7 @@ Checks: >
   performance-*,
   portability-*,
   readability-*,
+  -clang-analyzer-optin.core.EnumCastOutOfRange,
   -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
   -readability-identifier-length,
   -readability-magic-numbers

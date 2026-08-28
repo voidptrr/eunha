@@ -31,7 +31,6 @@
 #include "base/base_core.h"
 
 enum arena_flags {
-    ARENA_DEFAULT = 0,
     NO_CHAIN = 1 << 0,
 };
 
@@ -65,8 +64,11 @@ struct arena_temp {
 #define arena_push_array(arena, type, item_count) \
     ((type *)arena_push((arena), sizeof(type) * (item_count), alignof(type)))
 
-/** Creates an arena whose backing regions are allocated lazily on first use. */
-struct arena *arena_alloc(enum arena_flags flags);
+/** Creates a growable arena whose regions are allocated lazily on first use. */
+struct arena *arena_alloc(void);
+
+/** Creates an arena with the requested optional behavior flags. */
+struct arena *arena_alloc_with_flags(enum arena_flags flags);
 
 /**
  * Returns size bytes of uninitialized arena storage beginning at an address

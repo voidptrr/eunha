@@ -66,7 +66,7 @@ static void test_byte_view_can_contain_null(void)
 
 static void test_arena_copy_owns_its_bytes(void)
 {
-    struct arena *arena = arena_alloc(ARENA_DEFAULT);
+    struct arena *arena = arena_alloc();
     u8 source_bytes[] = { 'h', 'e', 'l', 'l', 'o' };
     struct str8 source = str8(source_bytes, sizeof(source_bytes));
     struct str8 copy = str8_copy(arena, source);
@@ -84,7 +84,7 @@ static void test_arena_copy_owns_its_bytes(void)
 
 static void test_arena_copy_of_empty_string(void)
 {
-    struct arena *arena = arena_alloc(ARENA_DEFAULT);
+    struct arena *arena = arena_alloc();
     struct str8 copy = str8_copy(arena, (struct str8){ 0 });
 
     assert(copy.data != NULL);
@@ -96,7 +96,7 @@ static void test_arena_copy_of_empty_string(void)
 
 static void test_cat(void)
 {
-    struct arena *arena = arena_alloc(ARENA_DEFAULT);
+    struct arena *arena = arena_alloc();
     struct str8 first = str8_lit("hello, ");
     struct str8 second = str8_lit("world");
     struct str8 result = str8_cat(arena, first, second);
