@@ -121,6 +121,14 @@ static void test_contains_is_case_sensitive(void) {
     assert(!str8_contains(string, str8_lit("eunha")));
 }
 
+static void test_contains_skips_false_candidates(void) {
+    struct str8 string = str8_lit("aaaaab");
+
+    assert(str8_contains(string, str8_lit("aaab")));
+    assert(str8_contains(string, str8_lit("ab")));
+    assert(!str8_contains(string, str8_lit("aaac")));
+}
+
 static void test_contains_empty_needle(void) {
     struct str8 empty = {0};
     struct str8 nonempty = str8_lit("eunha");
@@ -164,6 +172,7 @@ int main(void) {
     test_cat();
     test_contains_at_each_position();
     test_contains_is_case_sensitive();
+    test_contains_skips_false_candidates();
     test_contains_empty_needle();
     test_has_prefix();
     test_has_prefix_is_case_sensitive();

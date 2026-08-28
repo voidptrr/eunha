@@ -120,10 +120,21 @@ bool str8_contains(struct str8 haystack, struct str8 needle) {
         return true;
     }
 
-    for (size_t index = 0; index <= haystack.len - needle.len; ++index) {
-        if (memcmp(haystack.data + index, needle.data, needle.len) == 0) {
+    const u8* cursor = haystack.data;
+    size_t remaining = haystack.len;
+    while (remaining >= needle.len) {
+        size_t candidate_count = remaining - needle.len + 1;
+        const u8* candidate = memchr(cursor, needle.data[0], candidate_count);
+        if (candidate == NULL) {
+            return false;
+        }
+        if (memcmp(candidate, needle.data, needle.len) == 0) {
             return true;
         }
+
+        size_t consumed = (size_t)(candidate - cursor) + 1;
+        cursor += consumed;
+        remaining -= consumed;
     }
 
     return false;
