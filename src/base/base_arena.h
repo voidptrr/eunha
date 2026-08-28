@@ -37,6 +37,7 @@ enum arena_flags {
 
 struct arena_region {
     struct arena_region* prev;
+    size_t base_position;
     size_t capacity;
     size_t offset;
     u8 data[];
@@ -69,6 +70,9 @@ struct arena* arena_alloc(enum arena_flags flags);
  * region of block_capacity bytes.
  */
 void* arena_push(struct arena* arena, size_t size, size_t alignment);
+
+/** Returns the arena's current logical position across its region chain. */
+size_t arena_position(const struct arena* arena);
 
 /** Releases every backing region and the arena itself. */
 void arena_free(struct arena* arena);

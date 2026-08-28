@@ -24,6 +24,7 @@
 
 #include <assert.h>
 #include <stdalign.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include "base/base_arena.h"
@@ -58,6 +59,7 @@ static void test_oversized_push_adds_region(void) {
     assert(arena_push(arena, 1, 1) != NULL);
 
     struct arena_region* first = arena->current;
+    size_t first_position = arena_position(arena);
     void* oversized = arena_push(arena, kb(100), 64);
 
     assert(oversized != NULL);
@@ -65,6 +67,11 @@ static void test_oversized_push_adds_region(void) {
     assert(arena->current != first);
     assert(arena->current->prev == first);
     assert(arena->current->capacity >= kb(100) + 63);
+    assert(first->base_position == 0);
+    assert(arena->current->base_position == first->capacity);
+    assert(arena_position(arena) ==
+           arena->current->base_position + arena->current->offset);
+    assert(arena_position(arena) > first_position);
 
     arena_free(arena);
 }
@@ -107,7 +114,16 @@ static void test_no_grow_rejects_oversized_first_push(void) {
     arena_free(arena);
 }
 
+static void test_empty_arena_position_is_zero(void) {
+    struct arena* arena = arena_alloc(ARENA_DEFAULT);
+    assert(arena != NULL);
+    assert(arena_position(arena) == 0);
+
+    arena_free(arena);
+}
+
 int main(void) {
+    test_empty_arena_position_is_zero();
     test_alignment_and_typed_pushes();
     test_oversized_push_adds_region();
     test_overflow_does_not_add_region();

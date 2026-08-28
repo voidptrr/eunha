@@ -64,6 +64,7 @@ static struct arena_region* arena_region_alloc(size_t capacity) {
     }
 
     region->prev = NULL;
+    region->base_position = 0;
     region->capacity = capacity;
     region->offset = 0;
     return region;
@@ -107,10 +108,22 @@ void* arena_push(struct arena* arena, size_t size, size_t alignment) {
         region_capacity = required_capacity;
     }
 
+    /* Each region owns a non-overlapping range in the arena's logical
+     * position space. Unused bytes at the end of a region remain a gap. */
+    size_t base_position = 0;
+    if (region != NULL &&
+        ckd_add(&base_position, region->base_position, region->capacity)) {
+        return NULL;
+    }
+    if (region_capacity > SIZE_MAX - base_position) {
+        return NULL;
+    }
+
     struct arena_region* new_region = arena_region_alloc(region_capacity);
     if (new_region == NULL) {
         return NULL;
     }
+    new_region->base_position = base_position;
 
     /* Do not link the new region until its first push succeeds, leaving the
      * arena unchanged if a fixed-size region cannot satisfy the request. */
@@ -123,6 +136,18 @@ void* arena_push(struct arena* arena, size_t size, size_t alignment) {
     new_region->prev = region;
     arena->current = new_region;
     return result;
+}
+
+size_t arena_position(const struct arena* arena) {
+    assert(arena != NULL);
+
+    if (arena->current == NULL) {
+        return 0;
+    }
+
+    assert(arena->current->offset <= arena->current->capacity);
+    assert(arena->current->offset <= SIZE_MAX - arena->current->base_position);
+    return arena->current->base_position + arena->current->offset;
 }
 
 void arena_free(struct arena* arena) {
