@@ -97,6 +97,23 @@ static void test_overflow_does_not_add_region(void)
     arena_free(arena);
 }
 
+static void test_custom_block_capacity_is_reused(void)
+{
+    struct arena *arena = arena_alloc(.block_capacity = kb(1));
+    assert(arena != NULL);
+    assert(arena->block_capacity == kb(1));
+
+    assert(arena_push(arena, kb(1), 1) != NULL);
+    struct arena_region *first = arena->current;
+    assert(first->capacity == kb(1));
+
+    assert(arena_push(arena, 1, 1) != NULL);
+    assert(arena->current != first);
+    assert(arena->current->capacity == kb(1));
+
+    arena_free(arena);
+}
+
 static void test_no_grow_uses_one_region(void)
 {
     struct arena *arena = arena_alloc(.flags = NO_CHAIN);
@@ -187,6 +204,7 @@ int main(void)
     test_alignment_and_typed_pushes();
     test_oversized_push_adds_region();
     test_overflow_does_not_add_region();
+    test_custom_block_capacity_is_reused();
     test_no_grow_uses_one_region();
     test_no_grow_rejects_oversized_first_push();
     test_pop_restores_position_in_current_region();

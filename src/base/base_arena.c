@@ -79,7 +79,8 @@ struct arena *arena_alloc_params(const struct arena_params *params)
     assert(params != NULL);
 
     struct arena *arena = malloc(sizeof(struct arena));
-    arena->block_capacity = kb(64);
+    arena->block_capacity =
+        params->block_capacity != 0 ? params->block_capacity : kb(64);
     arena->flags = params->flags;
     arena->current = NULL;
 

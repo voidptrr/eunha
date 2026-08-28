@@ -30,16 +30,32 @@
 #include "base/base_arena.h"
 #include "base/base_core.h"
 
+/**
+ * struct str8 - Non-owning immutable byte-string view.
+ * @data: First byte, or NULL when len is zero.
+ * @len: Number of bytes in the view, excluding any trailing null byte.
+ */
 struct str8 {
     const u8 *data;
     size_t len;
 };
 
+/**
+ * struct str8_list_node - One string view in a linked string list.
+ * @data: Non-owning string view stored by this node.
+ * @next: Next node, or NULL for the final node.
+ */
 struct str8_list_node {
     struct str8 data;
     struct str8_list_node *next;
 };
 
+/**
+ * struct str8_list - Ordered collection of string views.
+ * @head: First node, or NULL when the list is empty.
+ * @tail: Final node, or NULL when the list is empty.
+ * @total_len: Sum of the lengths of all stored string views.
+ */
 struct str8_list {
     struct str8_list_node *head;
     struct str8_list_node *tail;
