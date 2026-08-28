@@ -72,8 +72,10 @@ struct str8 str8_copy(struct arena* arena, struct str8 source) {
     return str8(data, source.len);
 }
 
-struct str8 str8_cat(struct arena* arena, struct str8 first,
-                     struct str8 second) {
+struct str8 str8_cat(
+    struct arena* arena,
+    struct str8 first,
+    struct str8 second) {
     assert(str8_is_valid(first));
     assert(str8_is_valid(second));
 
@@ -122,8 +124,10 @@ bool str8_has_prefix(struct str8 string, struct str8 prefix) {
              memcmp(string.data, prefix.data, prefix.len) == 0)) != 0;
 }
 
-void str8_list_push(struct arena* arena, struct str8_list* list,
-                    struct str8 str) {
+void str8_list_push(
+    struct arena* arena,
+    struct str8_list* list,
+    struct str8 str) {
     assert(arena != NULL);
     assert(list != NULL);
     assert(str8_is_valid(str));

@@ -30,8 +30,10 @@
 #include "base/base_arena.h"
 #include "base/base_core.h"
 
-static void* arena_region_push(struct arena_region* region, size_t size,
-                               size_t alignment) {
+static void* arena_region_push(
+    struct arena_region* region,
+    size_t size,
+    size_t alignment) {
     assert(region != NULL);
     assert(region->offset <= region->capacity);
 
@@ -165,8 +167,9 @@ void arena_pop_to(struct arena* arena, size_t position) {
     }
 
     if (target != NULL) {
-        asan_poison_memory_region(target->data + target_offset,
-                                  target->offset - target_offset);
+        asan_poison_memory_region(
+            target->data + target_offset,
+            target->offset - target_offset);
         target->offset = target_offset;
     }
 }

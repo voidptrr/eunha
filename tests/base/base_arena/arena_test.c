@@ -75,8 +75,9 @@ static void test_oversized_push_adds_region(void) {
     assert(arena->current->capacity >= kb(100) + 63);
     assert(first->base_position == 0);
     assert(arena->current->base_position == first->capacity);
-    assert(arena_position(arena) ==
-           arena->current->base_position + arena->current->offset);
+    assert(
+        arena_position(arena) ==
+        arena->current->base_position + arena->current->offset);
     assert(arena_position(arena) > first_position);
 
     arena_free(arena);

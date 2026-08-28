@@ -22,12 +22,13 @@
 
 BasedOnStyle: LLVM
 AccessModifierOffset: -4
-AlignAfterOpenBracket: Align
+AlignAfterOpenBracket: AlwaysBreak
 AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
 AlignEscapedNewlines: Left
 AlignOperands: true
 AlignTrailingComments: false
+AllowAllArgumentsOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
 AllowShortBlocksOnASingleLine: true
 AllowShortCaseLabelsOnASingleLine: true
@@ -38,8 +39,8 @@ AlwaysBreakAfterDefinitionReturnType: None
 AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: false
-BinPackArguments: true
-BinPackParameters: true
+BinPackArguments: false
+BinPackParameters: OnePerLine
 ColumnLimit: 80
 ForEachMacros: 
   - 'for_each_char'
@@ -52,6 +53,7 @@ IncludeCategories:
 IncludeIsMainRegex: 'a^'
 IndentWidth: 4
 MaxEmptyLinesToKeep: 1
+PenaltyReturnTypeOnItsOwnLine: 1000
 PointerAlignment: Left
 SortIncludes: CaseSensitive
 SpaceBeforeParens: ControlStatementsExceptForEachMacros

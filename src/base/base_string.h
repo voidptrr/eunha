@@ -49,9 +49,10 @@ struct str8_list {
 #define str8_lit(value) str8((const u8*)(value), sizeof(value) - 1)
 
 /** Iterates a caller-owned byte cursor over the string's contents. */
-#define for_each_char(pos, str) \
-    for ((pos) = (str)->data;   \
-         (pos) != NULL && (pos) < (str)->data + (str)->len; ++(pos))
+#define for_each_char(pos, str)                             \
+    for ((pos) = (str)->data;                               \
+         (pos) != NULL && (pos) < (str)->data + (str)->len; \
+         ++(pos))
 
 /** Creates a non-owning UTF-8 view over len bytes. */
 struct str8 str8(const u8* data, size_t len);
@@ -72,8 +73,10 @@ struct str8 str8_copy(struct arena* arena, struct str8 source);
  * Returns a new arena-owned concatenation of first and second. The inputs
  * remain unchanged. Returns a zero view on allocation failure.
  */
-struct str8 str8_cat(struct arena* arena, struct str8 first,
-                     struct str8 second);
+struct str8 str8_cat(
+    struct arena* arena,
+    struct str8 first,
+    struct str8 second);
 
 /**
  * Returns whether haystack contains needle. Matching is bytewise and
@@ -92,8 +95,10 @@ bool str8_has_prefix(struct str8 string, struct str8 prefix);
  * are not copied, so they must remain valid for as long as the list is used.
  * Leaves list unchanged when the node allocation cannot be satisfied.
  */
-void str8_list_push(struct arena* arena, struct str8_list* list,
-                    struct str8 str);
+void str8_list_push(
+    struct arena* arena,
+    struct str8_list* list,
+    struct str8 str);
 
 /**
  * Copies the strings in list into one contiguous, null-terminated arena
