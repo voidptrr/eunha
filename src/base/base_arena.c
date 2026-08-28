@@ -42,9 +42,7 @@ static void* arena_region_push(struct arena_region* region, size_t size,
     size_t available = region->capacity - region->offset;
 
     /* Test padding first to keep the following unsigned subtraction safe. */
-    if (padding > available || size > available - padding) {
-        return NULL;
-    }
+    if (padding > available || size > available - padding) { return NULL; }
 
     void* result = region->data + region->offset + padding;
     region->offset += padding + size;
@@ -60,9 +58,7 @@ static struct arena_region* arena_region_alloc(size_t capacity) {
     }
 
     struct arena_region* region = malloc(allocation_size);
-    if (region == NULL) {
-        return NULL;
-    }
+    if (region == NULL) { return NULL; }
 
     region->prev = NULL;
     region->base_position = 0;
@@ -89,13 +85,9 @@ void* arena_push(struct arena* arena, size_t size, size_t alignment) {
     struct arena_region* region = arena->current;
     void* result =
         region != NULL ? arena_region_push(region, size, alignment) : NULL;
-    if (result != NULL) {
-        return result;
-    }
+    if (result != NULL) { return result; }
 
-    if (region != NULL && (arena->flags & NO_CHAIN) != 0) {
-        return NULL;
-    }
+    if (region != NULL && (arena->flags & NO_CHAIN) != 0) { return NULL; }
 
     /* A new region must accommodate the request and worst-case alignment
      * padding, whose maximum is alignment - 1 bytes. */
@@ -117,14 +109,10 @@ void* arena_push(struct arena* arena, size_t size, size_t alignment) {
         ckd_add(&base_position, region->base_position, region->capacity)) {
         return NULL;
     }
-    if (region_capacity > SIZE_MAX - base_position) {
-        return NULL;
-    }
+    if (region_capacity > SIZE_MAX - base_position) { return NULL; }
 
     struct arena_region* new_region = arena_region_alloc(region_capacity);
-    if (new_region == NULL) {
-        return NULL;
-    }
+    if (new_region == NULL) { return NULL; }
     new_region->base_position = base_position;
 
     /* Do not link the new region until its first push succeeds, leaving the
@@ -143,9 +131,7 @@ void* arena_push(struct arena* arena, size_t size, size_t alignment) {
 size_t arena_position(const struct arena* arena) {
     assert(arena != NULL);
 
-    if (arena->current == NULL) {
-        return 0;
-    }
+    if (arena->current == NULL) { return 0; }
 
     assert(arena->current->offset <= arena->current->capacity);
     assert(arena->current->offset <= SIZE_MAX - arena->current->base_position);

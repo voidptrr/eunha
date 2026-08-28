@@ -164,6 +164,83 @@ static void test_has_prefix_empty_prefix(void) {
     assert(!str8_has_prefix(empty, nonempty));
 }
 
+static void test_for_each_empty_string(void) {
+    struct str8 string = {0};
+    const u8* element;
+    size_t count = 0;
+
+    for_each_char(element, &string) {
+        (void)element;
+        ++count;
+    }
+
+    assert(count == 0);
+}
+
+static void test_for_each_visits_each_character(void) {
+    const u8 expected[] = "eunha";
+    struct str8 string = str8_lit("eunha");
+    const u8* element;
+    size_t index = 0;
+
+    for_each_char(element, &string) {
+        assert(index < sizeof(expected) - 1);
+        assert(element == string.data + index);
+        assert(*element == expected[index]);
+        ++index;
+    }
+
+    assert(index == sizeof(expected) - 1);
+}
+
+static void test_for_each_visits_embedded_null(void) {
+    const u8 bytes[] = {'a', 0, 'b'};
+    struct str8 string = str8(bytes, sizeof(bytes));
+    const u8* element;
+    size_t count = 0;
+
+    for_each_char(element, &string) { ++count; }
+
+    assert(count == sizeof(bytes));
+}
+
+static void test_for_each_break_and_continue(void) {
+    struct str8 string = str8_lit("abcde");
+    const u8* element;
+    u8 visited[5] = {0};
+    size_t index = 0;
+
+    for_each_char(element, &string) {
+        if (*element == 'b') { continue; }
+
+        if (*element == 'd') { break; }
+
+        visited[index++] = *element;
+    }
+
+    assert(index == 2);
+    assert(visited[0] == 'a');
+    assert(visited[1] == 'c');
+}
+
+static void test_for_each_nested_loops(void) {
+    struct str8 outer = str8_lit("abc");
+    struct str8 inner = str8_lit("xy");
+    const u8* outer_element;
+    const u8* inner_element;
+    size_t count = 0;
+
+    for_each_char(outer_element, &outer) {
+        for_each_char(inner_element, &inner) {
+            assert(*outer_element != '\0');
+            assert(*inner_element != '\0');
+            ++count;
+        }
+    }
+
+    assert(count == 6);
+}
+
 int main(void) {
     test_views();
     test_byte_view_can_contain_null();
@@ -177,5 +254,10 @@ int main(void) {
     test_has_prefix();
     test_has_prefix_is_case_sensitive();
     test_has_prefix_empty_prefix();
+    test_for_each_empty_string();
+    test_for_each_visits_each_character();
+    test_for_each_visits_embedded_null();
+    test_for_each_break_and_continue();
+    test_for_each_nested_loops();
     return 0;
 }

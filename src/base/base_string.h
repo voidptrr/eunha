@@ -35,6 +35,17 @@ struct str8 {
     size_t len;
 };
 
+struct str8_list_node {
+    struct str8 data;
+    struct str8_list_node* next;
+};
+
+struct str8_list {
+    struct str8_list_node* head;
+    struct str8_list_node* tail;
+    size_t total_len;
+};
+
 #define str8_lit(value) str8((const u8*)(value), sizeof(value) - 1)
 
 /** Iterates a caller-owned byte cursor over the string's contents. */
@@ -75,5 +86,23 @@ bool str8_contains(struct str8 haystack, struct str8 needle);
  * an empty prefix always matches.
  */
 bool str8_has_prefix(struct str8 string, struct str8 prefix);
+
+/** Returns an empty string list with no arena storage allocated. */
+struct str8_list str8_list(void);
+
+/**
+ * Appends str to list by allocating a list node from arena. The string bytes
+ * are not copied, so they must remain valid for as long as the list is used.
+ * Leaves list unchanged when the node allocation cannot be satisfied.
+ */
+void str8_list_push(struct arena* arena, struct str8_list* list,
+                    struct str8 str);
+
+/**
+ * Copies the strings in list into one contiguous, null-terminated arena
+ * allocation and returns a view over it. The list and its strings remain
+ * unchanged. Returns a zero view when the allocation cannot be satisfied.
+ */
+struct str8 str8_list_join(struct arena* arena, const struct str8_list* list);
 
 #endif
