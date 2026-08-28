@@ -27,49 +27,54 @@
 
 #include <stddef.h>
 
-struct string {
+#include "base/base_core.h"
+
+struct arena;
+
+struct str8 {
+    const u8* data;
     size_t len;
-    size_t capacity;
-    char* data;
 };
 
-/** Iterates a caller-owned const char cursor, excluding the null terminator. */
-#define for_each_char(pos, str) for ((pos) = (str)->data; *(pos); ++(pos))
+#define str8_lit(value) str8((const u8*)(value), sizeof(value) - 1)
 
-/**
- * Allocates an owned string from null-terminated bytes, or an empty string when
- * initialized with NULL. Exits the process if allocation fails.
- */
-struct string* string_alloc(const char* initial);
+/** Iterates a caller-owned byte cursor over the string's contents. */
+#define for_each_char(pos, str) \
+    for ((pos) = (str)->data;   \
+         (pos) != NULL && (pos) < (str)->data + (str)->len; ++(pos))
+
+/** Creates a non-owning UTF-8 view over len bytes. */
+struct str8 str8(const u8* data, size_t len);
+
+/** Creates a non-owning UTF-8 view over a C string, or a zero view for NULL. */
+struct str8 str8_cstring(const char* cstr);
 
 /** Returns the string length in bytes, excluding the null terminator. */
-size_t string_len(const struct string* str);
+size_t str8_len(struct str8 str);
 
 /**
- * Appends null-terminated bytes, growing the destination as needed. The source
- * must not point into the destination's backing storage.
+ * Copies a string and a trailing null byte into the arena. Returns an empty
+ * zero view when the allocation cannot be satisfied.
  */
-void string_append(struct string* dst, const char* src);
+struct str8 str8_copy(struct arena* arena, struct str8 source);
 
 /**
- * Prepends null-terminated bytes, growing the destination as needed. The
- * source must not point into the destination's backing storage.
+ * Returns a new arena-owned concatenation of first and second. The inputs
+ * remain unchanged. Returns a zero view on allocation failure.
  */
-void string_prepend(struct string* dst, const char* src);
+struct str8 str8_cat(struct arena* arena, struct str8 first,
+                     struct str8 second);
 
 /**
- * Returns whether the string contains the null-terminated needle. Matching is
- * bytewise and case-sensitive; an empty needle always matches.
+ * Returns whether haystack contains needle. Matching is bytewise and
+ * case-sensitive; an empty needle always matches.
  */
-bool string_contains(const struct string* haystack, const char* needle);
+bool str8_contains(struct str8 haystack, struct str8 needle);
 
 /**
- * Returns whether the string has the null-terminated prefix. Matching is
- * bytewise and case-sensitive; an empty prefix always matches.
+ * Returns whether string has prefix. Matching is bytewise and case-sensitive;
+ * an empty prefix always matches.
  */
-bool string_has_prefix(const struct string* str, const char* prefix);
-
-/** Frees an owned string and its backing storage. */
-void string_free(struct string* str);
+bool str8_has_prefix(struct str8 string, struct str8 prefix);
 
 #endif

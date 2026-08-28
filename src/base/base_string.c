@@ -25,125 +25,115 @@
 #include <assert.h>
 #include <stdckdint.h>
 #include <stddef.h>
-#include <stdlib.h>
 #include <string.h>
 
+#include "base/base_arena.h"
+#include "base/base_core.h"
 #include "base_string.h"
 
-#define DEFAULT_CAPACITY 8
-
-static int string_grow(struct string* dst, size_t final_len) {
-    if (ckd_mul(&dst->capacity, final_len, 2)) {
-        return 1;
-    }
-
-    char* tmp = realloc(dst->data, dst->capacity + 1);
-    if (tmp == NULL) {
-        return 1;
-    }
-
-    dst->data = tmp;
-
-    return 0;
+static bool str8_is_valid(struct str8 str) {
+    return (str.len == 0 || str.data != NULL) != 0;
 }
 
-struct string* string_alloc(const char* initial) {
-    size_t initial_len = initial != NULL ? strlen(initial) : 0;
-    struct string* str = malloc(sizeof(struct string));
-    if (str == NULL) {
-        exit(EXIT_FAILURE);
-    }
-
-    str->capacity =
-        initial_len > DEFAULT_CAPACITY ? initial_len : DEFAULT_CAPACITY;
-    str->len = initial_len;
-
-    char* initial_data = malloc((sizeof(char) * str->capacity) + 1);
-    if (initial_data == NULL) {
-        exit(EXIT_FAILURE);
-    }
-
-    str->data = initial_data;
-
-    if (initial_len > 0) {
-        memcpy(str->data, initial, initial_len);
-    }
-
-    str->data[initial_len] = '\0';
-    return str;
+struct str8 str8(const u8* data, size_t len) {
+    assert(data != NULL || len == 0);
+    return (struct str8){
+        .data = data,
+        .len = len,
+    };
 }
 
-size_t string_len(const struct string* str) {
-    assert(str != NULL);
-    return str->len;
-}
-
-void string_append(struct string* dst, const char* src) {
-    assert(dst != NULL);
-    assert(src != NULL);
-
-    size_t dst_len = string_len(dst);
-    size_t src_len = strlen(src);
-
-    size_t final_len = 0;
-    if (ckd_add(&final_len, dst_len, src_len)) {
-        string_free(dst);
-        exit(EXIT_FAILURE);
+struct str8 str8_cstring(const char* cstr) {
+    if (cstr == NULL) {
+        return (struct str8){0};
     }
 
-    if (final_len > dst->capacity && string_grow(dst, final_len)) {
-        string_free(dst);
-        exit(EXIT_FAILURE);
-    }
-
-    memmove(dst->data + dst_len, src, src_len);
-    dst->len = final_len;
-    dst->data[final_len] = '\0';
+    return str8((const u8*)cstr, strlen(cstr));
 }
 
-void string_prepend(struct string* dst, const char* src) {
-    assert(dst != NULL);
-    assert(src != NULL);
-
-    size_t src_len = strlen(src);
-    size_t dst_len = string_len(dst);
-    size_t final_len = 0;
-    if (ckd_add(&final_len, dst_len, src_len)) {
-        string_free(dst);
-        exit(EXIT_FAILURE);
-    }
-
-    if (final_len > dst->capacity && string_grow(dst, final_len)) {
-        string_free(dst);
-        exit(EXIT_FAILURE);
-    }
-
-    memmove(dst->data + src_len, dst->data, dst_len + 1);
-    memcpy(dst->data, src, src_len);
-    dst->len = final_len;
+size_t str8_len(struct str8 str) {
+    assert(str8_is_valid(str));
+    return str.len;
 }
 
-bool string_contains(const struct string* haystack, const char* needle) {
-    assert(haystack != NULL);
-    assert(needle != NULL);
+static u8* str8_push_buffer(struct arena* arena, size_t len) {
+    assert(arena != NULL);
 
-    return strstr(haystack->data, needle) != NULL;
-}
-
-bool string_has_prefix(const struct string* str, const char* prefix) {
-    assert(str != NULL);
-    assert(prefix != NULL);
-
-    size_t prefix_len = strlen(prefix);
-    return (string_len(str) >= prefix_len &&
-            memcmp(str->data, prefix, prefix_len) == 0) != 0;
-}
-
-void string_free(struct string* str) {
-    assert(str != NULL);
-    if (str->data != NULL) {
-        free(str->data);
+    size_t allocation_size = 0;
+    if (ckd_add(&allocation_size, len, (size_t)1)) {
+        return NULL;
     }
 
-    free(str);
+    return arena_push_array(arena, u8, allocation_size);
+}
+
+struct str8 str8_copy(struct arena* arena, struct str8 source) {
+    assert(str8_is_valid(source));
+
+    u8* data = str8_push_buffer(arena, source.len);
+    if (data == NULL) {
+        return (struct str8){0};
+    }
+
+    if (source.len > 0) {
+        memcpy(data, source.data, source.len);
+    }
+    data[source.len] = '\0';
+
+    return str8(data, source.len);
+}
+
+struct str8 str8_cat(struct arena* arena, struct str8 first,
+                     struct str8 second) {
+    assert(str8_is_valid(first));
+    assert(str8_is_valid(second));
+
+    size_t len = 0;
+    if (ckd_add(&len, first.len, second.len)) {
+        return (struct str8){0};
+    }
+
+    u8* data = str8_push_buffer(arena, len);
+    if (data == NULL) {
+        return (struct str8){0};
+    }
+
+    if (first.len > 0) {
+        memcpy(data, first.data, first.len);
+    }
+    if (second.len > 0) {
+        memcpy(data + first.len, second.data, second.len);
+    }
+    data[len] = '\0';
+
+    return str8(data, len);
+}
+
+bool str8_contains(struct str8 haystack, struct str8 needle) {
+    assert(str8_is_valid(haystack));
+    assert(str8_is_valid(needle));
+
+    if (needle.len > haystack.len) {
+        return false;
+    }
+    if (needle.len == 0) {
+        return true;
+    }
+
+    for (size_t index = 0; index <= haystack.len - needle.len; ++index) {
+        if (memcmp(haystack.data + index, needle.data, needle.len) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool str8_has_prefix(struct str8 string, struct str8 prefix) {
+    assert(str8_is_valid(string));
+    assert(str8_is_valid(prefix));
+
+    return (prefix.len <= string.len &&
+            (prefix.len == 0 ||
+             memcmp(string.data, prefix.data, prefix.len) == 0)) != 0;
 }
