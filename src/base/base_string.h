@@ -31,34 +31,33 @@
 #include "base/base_core.h"
 
 struct str8 {
-    const u8* data;
+    const u8 *data;
     size_t len;
 };
 
 struct str8_list_node {
     struct str8 data;
-    struct str8_list_node* next;
+    struct str8_list_node *next;
 };
 
 struct str8_list {
-    struct str8_list_node* head;
-    struct str8_list_node* tail;
+    struct str8_list_node *head;
+    struct str8_list_node *tail;
     size_t total_len;
 };
 
-#define str8_lit(value) str8((const u8*)(value), sizeof(value) - 1)
+#define str8_lit(value) str8((const u8 *)(value), sizeof(value) - 1)
 
 /** Iterates a caller-owned byte cursor over the string's contents. */
-#define for_each_char(pos, str)                             \
-    for ((pos) = (str)->data;                               \
-         (pos) != NULL && (pos) < (str)->data + (str)->len; \
-         ++(pos))
+#define for_each_char(pos, str) \
+    for ((pos) = (str)->data;   \
+         (pos) != NULL && (pos) < (str)->data + (str)->len; ++(pos))
 
 /** Creates a non-owning UTF-8 view over len bytes. */
-struct str8 str8(const u8* data, size_t len);
+struct str8 str8(const u8 *data, size_t len);
 
 /** Creates a non-owning UTF-8 view over a C string, or a zero view for NULL. */
-struct str8 str8_cstring(const char* cstr);
+struct str8 str8_cstring(const char *cstr);
 
 /** Returns the string length in bytes, excluding the null terminator. */
 size_t str8_len(struct str8 str);
@@ -67,16 +66,14 @@ size_t str8_len(struct str8 str);
  * Copies a string and a trailing null byte into the arena. Returns an empty
  * zero view when the allocation cannot be satisfied.
  */
-struct str8 str8_copy(struct arena* arena, struct str8 source);
+struct str8 str8_copy(struct arena *arena, struct str8 source);
 
 /**
  * Returns a new arena-owned concatenation of first and second. The inputs
  * remain unchanged. Returns a zero view on allocation failure.
  */
-struct str8 str8_cat(
-    struct arena* arena,
-    struct str8 first,
-    struct str8 second);
+struct str8 str8_cat(struct arena *arena, struct str8 first,
+                     struct str8 second);
 
 /**
  * Returns whether haystack contains needle. Matching is bytewise and
@@ -95,16 +92,14 @@ bool str8_has_prefix(struct str8 string, struct str8 prefix);
  * are not copied, so they must remain valid for as long as the list is used.
  * Leaves list unchanged when the node allocation cannot be satisfied.
  */
-void str8_list_push(
-    struct arena* arena,
-    struct str8_list* list,
-    struct str8 str);
+void str8_list_push(struct arena *arena, struct str8_list *list,
+                    struct str8 str);
 
 /**
  * Copies the strings in list into one contiguous, null-terminated arena
  * allocation and returns a view over it. The list and its strings remain
  * unchanged. Returns a zero view when the allocation cannot be satisfied.
  */
-struct str8 str8_list_join(struct arena* arena, const struct str8_list* list);
+struct str8 str8_list_join(struct arena *arena, const struct str8_list *list);
 
 #endif

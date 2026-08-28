@@ -29,7 +29,8 @@
 #include "base/base_core.h"
 #include "base/base_string.h"
 
-static void expect_str8(struct str8 string, const char* expected) {
+static void expect_str8(struct str8 string, const char *expected)
+{
     struct str8 expected_string = str8_cstring(expected);
 
     assert(str8_len(string) == expected_string.len);
@@ -38,12 +39,13 @@ static void expect_str8(struct str8 string, const char* expected) {
     }
 }
 
-static void test_push(void) {
-    struct arena* arena = arena_alloc(ARENA_DEFAULT);
+static void test_push(void)
+{
+    struct arena *arena = arena_alloc(ARENA_DEFAULT);
     struct str8 first = str8_lit("hello");
     struct str8 second = str8_lit(", ");
     struct str8 third = str8_lit("world");
-    struct str8_list list = {0};
+    struct str8_list list = { 0 };
 
     assert(list.head == NULL);
     assert(list.tail == NULL);
@@ -65,14 +67,15 @@ static void test_push(void) {
     arena_free(arena);
 }
 
-static void test_join(void) {
-    struct arena* arena = arena_alloc(ARENA_DEFAULT);
-    u8 first_bytes[] = {'h', 'e', 'l', 'l', 'o'};
+static void test_join(void)
+{
+    struct arena *arena = arena_alloc(ARENA_DEFAULT);
+    u8 first_bytes[] = { 'h', 'e', 'l', 'l', 'o' };
     struct str8 first = str8(first_bytes, sizeof(first_bytes));
-    struct str8_list list = {0};
+    struct str8_list list = { 0 };
 
     str8_list_push(arena, &list, first);
-    str8_list_push(arena, &list, (struct str8){0});
+    str8_list_push(arena, &list, (struct str8){ 0 });
     str8_list_push(arena, &list, str8_lit(", world"));
 
     struct str8 joined = str8_list_join(arena, &list);
@@ -87,9 +90,10 @@ static void test_join(void) {
     arena_free(arena);
 }
 
-static void test_join_empty(void) {
-    struct arena* arena = arena_alloc(ARENA_DEFAULT);
-    struct str8_list list = {0};
+static void test_join_empty(void)
+{
+    struct arena *arena = arena_alloc(ARENA_DEFAULT);
+    struct str8_list list = { 0 };
     struct str8 joined = str8_list_join(arena, &list);
 
     assert(joined.data != NULL);
@@ -99,7 +103,8 @@ static void test_join_empty(void) {
     arena_free(arena);
 }
 
-int main(void) {
+int main(void)
+{
     test_push();
     test_join();
     test_join_empty();

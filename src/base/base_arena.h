@@ -36,7 +36,7 @@ enum arena_flags {
 };
 
 struct arena_region {
-    struct arena_region* prev;
+    struct arena_region *prev;
     size_t base_position;
     size_t capacity;
     size_t offset;
@@ -44,29 +44,29 @@ struct arena_region {
 };
 
 struct arena {
-    struct arena_region* current;
+    struct arena_region *current;
     enum arena_flags flags;
     size_t block_capacity;
 };
 
 struct arena_temp {
-    struct arena* arena;
+    struct arena *arena;
     size_t pos;
 };
 
 /** Pushes uninitialized storage for one object of type. */
 #define arena_push_type(arena, type) \
-    ((type*)arena_push((arena), sizeof(type), alignof(type)))
+    ((type *)arena_push((arena), sizeof(type), alignof(type)))
 
 /**
  * Pushes an uninitialized array of item_count objects of type. The caller must
  * ensure sizeof(type) * item_count is representable by size_t.
  */
 #define arena_push_array(arena, type, item_count) \
-    ((type*)arena_push((arena), sizeof(type) * (item_count), alignof(type)))
+    ((type *)arena_push((arena), sizeof(type) * (item_count), alignof(type)))
 
 /** Creates an arena whose backing regions are allocated lazily on first use. */
-struct arena* arena_alloc(enum arena_flags flags);
+struct arena *arena_alloc(enum arena_flags flags);
 
 /**
  * Returns size bytes of uninitialized arena storage beginning at an address
@@ -74,24 +74,24 @@ struct arena* arena_alloc(enum arena_flags flags);
  * NULL when the request cannot be satisfied; NO_CHAIN limits the arena to one
  * region of block_capacity bytes.
  */
-void* arena_push(struct arena* arena, size_t size, size_t alignment);
+void *arena_push(struct arena *arena, size_t size, size_t alignment);
 
 /** Returns the arena's current logical position across its region chain. */
-size_t arena_position(const struct arena* arena);
+size_t arena_position(const struct arena *arena);
 
 /** Restores a position previously returned by arena_position. */
-void arena_pop_to(struct arena* arena, size_t position);
+void arena_pop_to(struct arena *arena, size_t position);
 
 /** Moves backward by amount in the arena's logical position space. */
-void arena_pop(struct arena* arena, size_t amount);
+void arena_pop(struct arena *arena, size_t amount);
 
 /** Begins a temporary scope by saving the arena's current position. */
-struct arena_temp arena_temp_begin(struct arena* arena);
+struct arena_temp arena_temp_begin(struct arena *arena);
 
 /** Ends a temporary scope and invalidates every push made within it. */
 void arena_temp_end(struct arena_temp temp);
 
 /** Releases every backing region and the arena itself. */
-void arena_free(struct arena* arena);
+void arena_free(struct arena *arena);
 
 #endif

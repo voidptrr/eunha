@@ -30,7 +30,8 @@
 #include "base/base_core.h"
 #include "base/base_string.h"
 
-static void expect_str8(struct str8 string, const char* expected) {
+static void expect_str8(struct str8 string, const char *expected)
+{
     struct str8 expected_string = str8_cstring(expected);
 
     assert(str8_len(string) == expected_string.len);
@@ -39,7 +40,8 @@ static void expect_str8(struct str8 string, const char* expected) {
     }
 }
 
-static void test_views(void) {
+static void test_views(void)
+{
     struct str8 zero = str8_cstring(NULL);
     struct str8 empty = str8_cstring("");
     struct str8 literal = str8_lit("eunha");
@@ -51,9 +53,10 @@ static void test_views(void) {
     expect_str8(literal, "eunha");
 }
 
-static void test_byte_view_can_contain_null(void) {
-    const u8 bytes[] = {'a', 0, 'b'};
-    const u8 needle_bytes[] = {0, 'b'};
+static void test_byte_view_can_contain_null(void)
+{
+    const u8 bytes[] = { 'a', 0, 'b' };
+    const u8 needle_bytes[] = { 0, 'b' };
     struct str8 string = str8(bytes, sizeof(bytes));
     struct str8 needle = str8(needle_bytes, sizeof(needle_bytes));
 
@@ -61,9 +64,10 @@ static void test_byte_view_can_contain_null(void) {
     assert(str8_contains(string, needle));
 }
 
-static void test_arena_copy_owns_its_bytes(void) {
-    struct arena* arena = arena_alloc(ARENA_DEFAULT);
-    u8 source_bytes[] = {'h', 'e', 'l', 'l', 'o'};
+static void test_arena_copy_owns_its_bytes(void)
+{
+    struct arena *arena = arena_alloc(ARENA_DEFAULT);
+    u8 source_bytes[] = { 'h', 'e', 'l', 'l', 'o' };
     struct str8 source = str8(source_bytes, sizeof(source_bytes));
     struct str8 copy = str8_copy(arena, source);
 
@@ -78,9 +82,10 @@ static void test_arena_copy_owns_its_bytes(void) {
     arena_free(arena);
 }
 
-static void test_arena_copy_of_empty_string(void) {
-    struct arena* arena = arena_alloc(ARENA_DEFAULT);
-    struct str8 copy = str8_copy(arena, (struct str8){0});
+static void test_arena_copy_of_empty_string(void)
+{
+    struct arena *arena = arena_alloc(ARENA_DEFAULT);
+    struct str8 copy = str8_copy(arena, (struct str8){ 0 });
 
     assert(copy.data != NULL);
     assert(copy.len == 0);
@@ -89,8 +94,9 @@ static void test_arena_copy_of_empty_string(void) {
     arena_free(arena);
 }
 
-static void test_cat(void) {
-    struct arena* arena = arena_alloc(ARENA_DEFAULT);
+static void test_cat(void)
+{
+    struct arena *arena = arena_alloc(ARENA_DEFAULT);
     struct str8 first = str8_lit("hello, ");
     struct str8 second = str8_lit("world");
     struct str8 result = str8_cat(arena, first, second);
@@ -103,7 +109,8 @@ static void test_cat(void) {
     arena_free(arena);
 }
 
-static void test_contains_at_each_position(void) {
+static void test_contains_at_each_position(void)
+{
     struct str8 string = str8_lit("prefix-middle-suffix");
 
     assert(str8_contains(string, str8_lit("prefix")));
@@ -114,14 +121,16 @@ static void test_contains_at_each_position(void) {
     assert(!str8_contains(string, str8_lit("prefix-middle-suffix-extra")));
 }
 
-static void test_contains_is_case_sensitive(void) {
+static void test_contains_is_case_sensitive(void)
+{
     struct str8 string = str8_lit("Eunha");
 
     assert(str8_contains(string, str8_lit("Eunha")));
     assert(!str8_contains(string, str8_lit("eunha")));
 }
 
-static void test_contains_skips_false_candidates(void) {
+static void test_contains_skips_false_candidates(void)
+{
     struct str8 string = str8_lit("aaaaab");
 
     assert(str8_contains(string, str8_lit("aaab")));
@@ -129,8 +138,9 @@ static void test_contains_skips_false_candidates(void) {
     assert(!str8_contains(string, str8_lit("aaac")));
 }
 
-static void test_contains_empty_needle(void) {
-    struct str8 empty = {0};
+static void test_contains_empty_needle(void)
+{
+    struct str8 empty = { 0 };
     struct str8 nonempty = str8_lit("eunha");
 
     assert(str8_contains(empty, empty));
@@ -138,7 +148,8 @@ static void test_contains_empty_needle(void) {
     assert(!str8_contains(empty, nonempty));
 }
 
-static void test_has_prefix(void) {
+static void test_has_prefix(void)
+{
     struct str8 string = str8_lit("prefix-middle-suffix");
 
     assert(str8_has_prefix(string, str8_lit("prefix")));
@@ -148,15 +159,17 @@ static void test_has_prefix(void) {
     assert(!str8_has_prefix(string, str8_lit("prefix-middle-suffix-extra")));
 }
 
-static void test_has_prefix_is_case_sensitive(void) {
+static void test_has_prefix_is_case_sensitive(void)
+{
     struct str8 string = str8_lit("Eunha");
 
     assert(str8_has_prefix(string, str8_lit("Eun")));
     assert(!str8_has_prefix(string, str8_lit("eun")));
 }
 
-static void test_has_prefix_empty_prefix(void) {
-    struct str8 empty = {0};
+static void test_has_prefix_empty_prefix(void)
+{
+    struct str8 empty = { 0 };
     struct str8 nonempty = str8_lit("eunha");
 
     assert(str8_has_prefix(empty, empty));
@@ -164,20 +177,24 @@ static void test_has_prefix_empty_prefix(void) {
     assert(!str8_has_prefix(empty, nonempty));
 }
 
-static void test_for_each_empty_string(void) {
-    struct str8 string = {0};
-    const u8* element;
+static void test_for_each_empty_string(void)
+{
+    struct str8 string = { 0 };
+    const u8 *element;
     size_t count = 0;
 
-    for_each_char(element, &string) { ++count; }
+    for_each_char(element, &string) {
+        ++count;
+    }
 
     assert(count == 0);
 }
 
-static void test_for_each_visits_each_character(void) {
+static void test_for_each_visits_each_character(void)
+{
     const u8 expected[] = "eunha";
     struct str8 string = str8_lit("eunha");
-    const u8* element;
+    const u8 *element;
     size_t index = 0;
 
     for_each_char(element, &string) {
@@ -190,26 +207,34 @@ static void test_for_each_visits_each_character(void) {
     assert(index == sizeof(expected) - 1);
 }
 
-static void test_for_each_visits_embedded_null(void) {
-    const u8 bytes[] = {'a', 0, 'b'};
+static void test_for_each_visits_embedded_null(void)
+{
+    const u8 bytes[] = { 'a', 0, 'b' };
     struct str8 string = str8(bytes, sizeof(bytes));
-    const u8* element;
+    const u8 *element;
     size_t count = 0;
 
-    for_each_char(element, &string) { ++count; }
+    for_each_char(element, &string) {
+        ++count;
+    }
 
     assert(count == sizeof(bytes));
 }
 
-static void test_for_each_break_and_continue(void) {
+static void test_for_each_break_and_continue(void)
+{
     struct str8 string = str8_lit("abcde");
-    const u8* element;
-    u8 visited[5] = {0};
+    const u8 *element;
+    u8 visited[5] = { 0 };
     size_t index = 0;
 
     for_each_char(element, &string) {
-        if (*element == 'b') { continue; }
-        if (*element == 'd') { break; }
+        if (*element == 'b') {
+            continue;
+        }
+        if (*element == 'd') {
+            break;
+        }
         visited[index++] = *element;
     }
 
@@ -218,21 +243,25 @@ static void test_for_each_break_and_continue(void) {
     assert(visited[1] == 'c');
 }
 
-static void test_for_each_nested_loops(void) {
+static void test_for_each_nested_loops(void)
+{
     struct str8 outer = str8_lit("abc");
     struct str8 inner = str8_lit("xy");
-    const u8* outer_element;
-    const u8* inner_element;
+    const u8 *outer_element;
+    const u8 *inner_element;
     size_t count = 0;
 
     for_each_char(outer_element, &outer) {
-        for_each_char(inner_element, &inner) { ++count; }
+        for_each_char(inner_element, &inner) {
+            ++count;
+        }
     }
 
     assert(count == 6);
 }
 
-int main(void) {
+int main(void)
+{
     test_views();
     test_byte_view_can_contain_null();
     test_arena_copy_owns_its_bytes();

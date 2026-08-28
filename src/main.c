@@ -24,7 +24,8 @@
 
 #include <stdio.h>
 
-int main(void) {
+int main(void)
+{
     printf("%s", "Working");
     return 0;
 }
