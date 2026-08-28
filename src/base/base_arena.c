@@ -48,6 +48,7 @@ static void* arena_region_push(struct arena_region* region, size_t size,
 
     void* result = region->data + region->offset + padding;
     region->offset += padding + size;
+    asan_unpoison_memory_region(result, size);
     return result;
 }
 
@@ -67,6 +68,7 @@ static struct arena_region* arena_region_alloc(size_t capacity) {
     region->base_position = 0;
     region->capacity = capacity;
     region->offset = 0;
+    asan_poison_memory_region(region->data, region->capacity);
     return region;
 }
 
@@ -177,6 +179,8 @@ void arena_pop_to(struct arena* arena, size_t position) {
     }
 
     if (target != NULL) {
+        asan_poison_memory_region(target->data + target_offset,
+                                  target->offset - target_offset);
         target->offset = target_offset;
     }
 }

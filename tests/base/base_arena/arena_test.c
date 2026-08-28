@@ -50,6 +50,12 @@ static void test_alignment_and_typed_pushes(void) {
     assert(number != NULL);
     assert((uintptr_t)number % alignof(u32) == 0);
 
+    *byte = 1;
+    *word = 2;
+    *(u8*)page_aligned = 3;
+    words[7] = 4;
+    *number = 5;
+
     arena_free(arena);
 }
 
@@ -133,7 +139,16 @@ static void test_pop_restores_position_in_current_region(void) {
 
     arena_pop(arena, 16);
     assert(arena_position(arena) == position);
-    assert(arena_push(arena, 16, 1) == temporary);
+#if BASE_ASAN_ENABLED
+    assert(asan_address_is_poisoned(temporary));
+#endif
+
+    void* reused = arena_push(arena, 16, 1);
+    assert(reused == temporary);
+#if BASE_ASAN_ENABLED
+    assert(!asan_address_is_poisoned(reused));
+#endif
+    *(u8*)reused = 1;
 
     arena_free(arena);
 }

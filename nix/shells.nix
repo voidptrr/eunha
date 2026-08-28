@@ -26,7 +26,7 @@
     ...
   }: {
     devShells.default = pkgs.mkShell {
-      CPATH = pkgs.lib.makeSearchPath "include" [pkgs.glibc.dev];
+      CPATH = pkgs.lib.makeSearchPath "include" [pkgs.glibc.dev pkgs.llvmPackages.compiler-rt.dev];
       packages = [
         pkgs.clang
         pkgs.clang-tools

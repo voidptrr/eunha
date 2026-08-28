@@ -28,6 +28,28 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef __clang__
+#define BASE_ASAN_ENABLED __has_feature(address_sanitizer)
+#elif defined(__GNUC__) && defined(__SANITIZE_ADDRESS__)
+#define BASE_ASAN_ENABLED 1
+#else
+#define BASE_ASAN_ENABLED 0
+#endif
+
+#if BASE_ASAN_ENABLED
+#include <sanitizer/asan_interface.h>
+#define asan_poison_memory_region(address, size) \
+    ASAN_POISON_MEMORY_REGION((address), (size))
+#define asan_unpoison_memory_region(address, size) \
+    ASAN_UNPOISON_MEMORY_REGION((address), (size))
+#define asan_address_is_poisoned(address) \
+    (__asan_address_is_poisoned((address)) != 0)
+#else
+#define asan_poison_memory_region(...) ((void)0)
+#define asan_unpoison_memory_region(...) ((void)0)
+#define asan_address_is_poisoned(...) (0)
+#endif
+
 typedef uint8_t u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
