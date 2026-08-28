@@ -38,10 +38,16 @@
 
 #if BASE_ASAN_ENABLED
 #include <sanitizer/asan_interface.h>
+
+/** Marks a memory range inaccessible to AddressSanitizer. */
 #define asan_poison_memory_region(address, size) \
     ASAN_POISON_MEMORY_REGION((address), (size))
+
+/** Marks a previously poisoned memory range accessible to AddressSanitizer. */
 #define asan_unpoison_memory_region(address, size) \
     ASAN_UNPOISON_MEMORY_REGION((address), (size))
+
+/** Returns whether AddressSanitizer considers address poisoned. */
 #define asan_address_is_poisoned(address) \
     (__asan_address_is_poisoned((address)) != 0)
 #else
@@ -60,12 +66,22 @@ typedef int16_t i16;
 typedef int32_t i32;
 typedef int64_t i64;
 
+/** Converts x kibibytes to bytes. */
 #define kb(x) ((size_t)(x) << 10)
+
+/** Converts x mebibytes to bytes. */
 #define mb(x) ((size_t)(x) << 20)
+
+/** Converts x gibibytes to bytes. */
 #define gb(x) ((size_t)(x) << 30)
 
+/** Rounds x up to the next multiple of the power-of-two alignment b. */
 #define align_pow2(x, b) (((x) + (b) - 1) & (~((b) - 1)))
+
+/** Returns the padding needed to align x to the power-of-two alignment b. */
 #define align_pad_pow2(x, b) ((0 - (x)) & ((b) - 1))
+
+/** Returns whether x is a nonzero power of two. */
 #define is_pow2(x) ((x) != 0 && ((x) & ((x) - 1)) == 0)
 
 #endif

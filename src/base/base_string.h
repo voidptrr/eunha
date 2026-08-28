@@ -62,6 +62,7 @@ struct str8_list {
     size_t total_len;
 };
 
+/** Creates a non-owning string view from a string literal. */
 #define str8_lit(value) str8((const u8 *)(value), sizeof(value) - 1)
 
 /** Iterates a caller-owned byte cursor over the string's contents. */
