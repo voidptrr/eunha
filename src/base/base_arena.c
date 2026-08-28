@@ -150,6 +150,58 @@ size_t arena_position(const struct arena* arena) {
     return arena->current->base_position + arena->current->offset;
 }
 
+void arena_pop_to(struct arena* arena, size_t position) {
+    assert(arena != NULL);
+    assert(position <= arena_position(arena));
+
+    /* Find and validate the region containing position before changing the
+     * chain, so an invalid position cannot partially mutate the arena. */
+    struct arena_region* target = arena->current;
+    while (target != NULL && target->base_position >= position) {
+        target = target->prev;
+    }
+
+    size_t target_offset = 0;
+    if (target != NULL) {
+        target_offset = position - target->base_position;
+        assert(target_offset <= target->offset);
+    } else {
+        assert(position == 0);
+    }
+
+    /* Regions newer than the target contain only invalidated allocations. */
+    while (arena->current != target) {
+        struct arena_region* region = arena->current;
+        arena->current = region->prev;
+        free(region);
+    }
+
+    if (target != NULL) {
+        target->offset = target_offset;
+    }
+}
+
+void arena_pop(struct arena* arena, size_t amount) {
+    assert(arena != NULL);
+
+    size_t position = arena_position(arena);
+    arena_pop_to(arena, amount < position ? position - amount : 0);
+}
+
+struct arena_temp arena_temp_begin(struct arena* arena) {
+    assert(arena != NULL);
+
+    return (struct arena_temp){
+        .arena = arena,
+        .pos = arena_position(arena),
+    };
+}
+
+void arena_temp_end(struct arena_temp temp) {
+    assert(temp.arena != NULL);
+    arena_pop_to(temp.arena, temp.pos);
+}
+
 void arena_free(struct arena* arena) {
     assert(arena != NULL);
 

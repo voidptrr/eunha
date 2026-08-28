@@ -49,6 +49,11 @@ struct arena {
     size_t block_capacity;
 };
 
+struct arena_temp {
+    struct arena* arena;
+    size_t pos;
+};
+
 /** Pushes uninitialized storage for one object of type. */
 #define arena_push_type(arena, type) \
     ((type*)arena_push((arena), sizeof(type), alignof(type)))
@@ -73,6 +78,18 @@ void* arena_push(struct arena* arena, size_t size, size_t alignment);
 
 /** Returns the arena's current logical position across its region chain. */
 size_t arena_position(const struct arena* arena);
+
+/** Restores a position previously returned by arena_position. */
+void arena_pop_to(struct arena* arena, size_t position);
+
+/** Moves backward by amount in the arena's logical position space. */
+void arena_pop(struct arena* arena, size_t amount);
+
+/** Begins a temporary scope by saving the arena's current position. */
+struct arena_temp arena_temp_begin(struct arena* arena);
+
+/** Ends a temporary scope and invalidates every push made within it. */
+void arena_temp_end(struct arena_temp temp);
 
 /** Releases every backing region and the arena itself. */
 void arena_free(struct arena* arena);

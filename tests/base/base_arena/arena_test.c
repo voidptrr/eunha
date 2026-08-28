@@ -122,6 +122,42 @@ static void test_empty_arena_position_is_zero(void) {
     arena_free(arena);
 }
 
+static void test_pop_restores_position_in_current_region(void) {
+    struct arena* arena = arena_alloc(ARENA_DEFAULT);
+    assert(arena != NULL);
+    assert(arena_push(arena, 32, 1) != NULL);
+
+    size_t position = arena_position(arena);
+    void* temporary = arena_push(arena, 16, 1);
+    assert(temporary != NULL);
+
+    arena_pop(arena, 16);
+    assert(arena_position(arena) == position);
+    assert(arena_push(arena, 16, 1) == temporary);
+
+    arena_free(arena);
+}
+
+static void test_temp_end_restores_position_across_regions(void) {
+    struct arena* arena = arena_alloc(ARENA_DEFAULT);
+    assert(arena != NULL);
+    assert(arena_push(arena, 1, 1) != NULL);
+
+    struct arena_region* persistent_region = arena->current;
+    struct arena_temp temp = arena_temp_begin(arena);
+    assert(temp.arena == arena);
+    assert(temp.pos == arena_position(arena));
+
+    assert(arena_push(arena, kb(100), 1) != NULL);
+    assert(arena->current != persistent_region);
+
+    arena_temp_end(temp);
+    assert(arena->current == persistent_region);
+    assert(arena_position(arena) == temp.pos);
+
+    arena_free(arena);
+}
+
 int main(void) {
     test_empty_arena_position_is_zero();
     test_alignment_and_typed_pushes();
@@ -129,5 +165,7 @@ int main(void) {
     test_overflow_does_not_add_region();
     test_no_grow_uses_one_region();
     test_no_grow_rejects_oversized_first_push();
+    test_pop_restores_position_in_current_region();
+    test_temp_end_restores_position_across_regions();
     return 0;
 }
