@@ -27,9 +27,8 @@
 
 #include <stddef.h>
 
+#include "base/base_arena.h"
 #include "base/base_core.h"
-
-struct arena;
 
 struct str8 {
     const u8* data;
