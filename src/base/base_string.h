@@ -87,9 +87,6 @@ bool str8_contains(struct str8 haystack, struct str8 needle);
  */
 bool str8_has_prefix(struct str8 string, struct str8 prefix);
 
-/** Returns an empty string list with no arena storage allocated. */
-struct str8_list str8_list(void);
-
 /**
  * Appends str to list by allocating a list node from arena. The string bytes
  * are not copied, so they must remain valid for as long as the list is used.

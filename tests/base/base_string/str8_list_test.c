@@ -43,7 +43,7 @@ static void test_push(void) {
     struct str8 first = str8_lit("hello");
     struct str8 second = str8_lit(", ");
     struct str8 third = str8_lit("world");
-    struct str8_list list = str8_list();
+    struct str8_list list = {0};
 
     assert(list.head == NULL);
     assert(list.tail == NULL);
@@ -69,7 +69,7 @@ static void test_join(void) {
     struct arena* arena = arena_alloc(ARENA_DEFAULT);
     u8 first_bytes[] = {'h', 'e', 'l', 'l', 'o'};
     struct str8 first = str8(first_bytes, sizeof(first_bytes));
-    struct str8_list list = str8_list();
+    struct str8_list list = {0};
 
     str8_list_push(arena, &list, first);
     str8_list_push(arena, &list, (struct str8){0});
@@ -89,7 +89,7 @@ static void test_join(void) {
 
 static void test_join_empty(void) {
     struct arena* arena = arena_alloc(ARENA_DEFAULT);
-    struct str8_list list = str8_list();
+    struct str8_list list = {0};
     struct str8 joined = str8_list_join(arena, &list);
 
     assert(joined.data != NULL);

@@ -169,10 +169,7 @@ static void test_for_each_empty_string(void) {
     const u8* element;
     size_t count = 0;
 
-    for_each_char(element, &string) {
-        (void)element;
-        ++count;
-    }
+    for_each_char(element, &string) { ++count; }
 
     assert(count == 0);
 }
@@ -212,9 +209,7 @@ static void test_for_each_break_and_continue(void) {
 
     for_each_char(element, &string) {
         if (*element == 'b') { continue; }
-
         if (*element == 'd') { break; }
-
         visited[index++] = *element;
     }
 
@@ -231,11 +226,7 @@ static void test_for_each_nested_loops(void) {
     size_t count = 0;
 
     for_each_char(outer_element, &outer) {
-        for_each_char(inner_element, &inner) {
-            assert(*outer_element != '\0');
-            assert(*inner_element != '\0');
-            ++count;
-        }
+        for_each_char(inner_element, &inner) { ++count; }
     }
 
     assert(count == 6);

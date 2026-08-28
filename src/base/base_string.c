@@ -46,10 +46,7 @@ static u8* str8_push_buffer(struct arena* arena, size_t len) {
 
 struct str8 str8(const u8* data, size_t len) {
     assert(data != NULL || len == 0);
-    return (struct str8){
-        .data = data,
-        .len = len,
-    };
+    return (struct str8){.data = data, .len = len};
 }
 
 struct str8 str8_cstring(const char* cstr) {
@@ -125,14 +122,6 @@ bool str8_has_prefix(struct str8 string, struct str8 prefix) {
              memcmp(string.data, prefix.data, prefix.len) == 0)) != 0;
 }
 
-struct str8_list str8_list(void) {
-    return (struct str8_list){
-        .head = NULL,
-        .tail = NULL,
-        .total_len = 0,
-    };
-}
-
 void str8_list_push(struct arena* arena, struct str8_list* list,
                     struct str8 str) {
     assert(arena != NULL);
@@ -145,10 +134,7 @@ void str8_list_push(struct arena* arena, struct str8_list* list,
     struct str8_list_node* node = arena_push_type(arena, struct str8_list_node);
     if (node == NULL) { return; }
 
-    *node = (struct str8_list_node){
-        .data = str,
-        .next = NULL,
-    };
+    *node = (struct str8_list_node){.data = str, .next = NULL};
 
     if (list->tail != NULL) {
         list->tail->next = node;
