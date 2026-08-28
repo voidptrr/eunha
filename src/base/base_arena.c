@@ -74,7 +74,7 @@ static struct arena_region *arena_region_alloc(size_t capacity)
     return region;
 }
 
-struct arena *arena_alloc_(const struct arena_params *params)
+struct arena *arena_alloc_params(const struct arena_params *params)
 {
     assert(params != NULL);
 

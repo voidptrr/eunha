@@ -68,14 +68,15 @@ struct arena_temp {
 #define arena_push_array(arena, type, item_count) \
     ((type *)arena_push((arena), sizeof(type) * (item_count), alignof(type)))
 
-/** Implementation entry point for the arena_alloc parameter macro. */
-struct arena *arena_alloc_(const struct arena_params *params);
-
 /**
  * Creates an arena from optional designated arena_params fields. With no
  * fields, the arena grows by chaining lazily allocated regions.
  */
-#define arena_alloc(...) arena_alloc_(&(struct arena_params){ __VA_ARGS__ })
+#define arena_alloc(...) \
+    arena_alloc_params(&(struct arena_params){ __VA_ARGS__ })
+
+/** Creates an arena using the supplied parameter structure. */
+struct arena *arena_alloc_params(const struct arena_params *params);
 
 /**
  * Returns size bytes of uninitialized arena storage beginning at an address
