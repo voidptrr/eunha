@@ -82,6 +82,10 @@ bool str8_equal(struct str8 first, struct str8 second)
         return false;
     }
 
+    if (first.len == 0) {
+        return true;
+    }
+
     return memcmp(first.data, second.data, first.len) == 0;
 }
 

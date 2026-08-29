@@ -63,6 +63,62 @@ static void test_byte_view_can_contain_null(void)
     assert(str8_contains(string, needle));
 }
 
+static void test_equal(void)
+{
+    const u8 first_bytes[] = { 'a', 0, 'b' };
+    const u8 equal_bytes[] = { 'a', 0, 'b' };
+    const u8 different_bytes[] = { 'a', 0, 'c' };
+    struct str8 first = str8(first_bytes, sizeof(first_bytes));
+    struct str8 equal = str8(equal_bytes, sizeof(equal_bytes));
+    struct str8 different = str8(different_bytes, sizeof(different_bytes));
+
+    assert(str8_equal(first, first));
+    assert(str8_equal(first, equal));
+    assert(!str8_equal(first, different));
+    assert(!str8_equal(str8_lit("Eunha"), str8_lit("eunha")));
+    assert(!str8_equal(str8_lit("eunha"), str8_lit("eunha!")));
+}
+
+static void test_equal_empty_strings(void)
+{
+    struct str8 zero = { 0 };
+    struct str8 empty = str8_lit("");
+
+    assert(str8_equal(zero, zero));
+    assert(str8_equal(zero, empty));
+    assert(str8_equal(empty, zero));
+}
+
+static void test_trim(void)
+{
+    struct str8 string = str8_lit(" \t\nhello world\v\f\r");
+    struct str8 trimmed = str8_trim(string);
+
+    expect_str8(trimmed, "hello world");
+    assert(trimmed.data == string.data + 3);
+}
+
+static void test_trim_without_whitespace(void)
+{
+    struct str8 string = str8_lit("eunha");
+    struct str8 trimmed = str8_trim(string);
+
+    assert(trimmed.data == string.data);
+    assert(trimmed.len == string.len);
+}
+
+static void test_trim_empty_and_whitespace_only(void)
+{
+    struct str8 zero = { 0 };
+    struct str8 whitespace = str8_lit(" \t\n\v\f\r");
+    struct str8 trimmed_zero = str8_trim(zero);
+    struct str8 trimmed_whitespace = str8_trim(whitespace);
+
+    assert(trimmed_zero.data == NULL);
+    assert(trimmed_zero.len == 0);
+    assert(trimmed_whitespace.len == 0);
+}
+
 static void test_arena_copy_owns_its_bytes(void)
 {
     struct arena *arena = arena_alloc();
@@ -263,6 +319,11 @@ int main(void)
 {
     test_views();
     test_byte_view_can_contain_null();
+    test_equal();
+    test_equal_empty_strings();
+    test_trim();
+    test_trim_without_whitespace();
+    test_trim_empty_and_whitespace_only();
     test_arena_copy_owns_its_bytes();
     test_arena_copy_of_empty_string();
     test_cat();
