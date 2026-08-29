@@ -89,26 +89,26 @@ bool str8_equal(struct str8 first, struct str8 second)
     return memcmp(first.data, second.data, first.len) == 0;
 }
 
-struct str8 str8_trim(struct str8 string)
+struct str8 str8_trim(struct str8 str)
 {
-    assert(str8_is_valid(string));
+    assert(str8_is_valid(str));
 
-    if (string.len == 0) {
-        return string;
+    if (str.len == 0) {
+        return str;
     }
 
     size_t start = 0;
-    size_t end = string.len;
+    size_t end = str.len;
 
-    while (start < string.len && (int)str8_is_whitespace(string.data[start])) {
+    while (start < str.len && (int)str8_is_whitespace(str.data[start])) {
         start += 1;
     }
 
-    while (end > start && (int)str8_is_whitespace(string.data[end - 1])) {
+    while (end > start && (int)str8_is_whitespace(str.data[end - 1])) {
         end -= 1;
     }
 
-    return str8(string.data + start, end - start);
+    return str8(str.data + start, end - start);
 }
 
 struct str8 str8_copy(struct arena *arena, struct str8 source)
@@ -186,26 +186,26 @@ bool str8_contains(struct str8 haystack, struct str8 needle)
     return false;
 }
 
-bool str8_has_prefix(struct str8 string, struct str8 prefix)
+bool str8_has_prefix(struct str8 str, struct str8 prefix)
 {
-    assert(str8_is_valid(string));
+    assert(str8_is_valid(str));
     assert(str8_is_valid(prefix));
 
-    return (prefix.len <= string.len &&
+    return (prefix.len <= str.len &&
             (prefix.len == 0 ||
-             memcmp(string.data, prefix.data, prefix.len) == 0)) != 0;
+             memcmp(str.data, prefix.data, prefix.len) == 0)) != 0;
 }
 
-struct str8_list str8_split(struct arena *arena, struct str8 string,
+struct str8_list str8_split(struct arena *arena, struct str8 str,
                             u8 delimiter)
 {
     assert(arena != NULL);
-    assert(str8_is_valid(string));
+    assert(str8_is_valid(str));
 
     size_t initial_position = arena_position(arena);
     struct str8_list list = { 0 };
-    const u8 *start = string.data;
-    size_t remaining = string.len;
+    const u8 *start = str.data;
+    size_t remaining = str.len;
 
     while (remaining > 0) {
         const u8 *position = memchr(start, delimiter, remaining);
@@ -253,7 +253,7 @@ void str8_list_push(struct arena *arena, struct str8_list *list,
         return;
     }
 
-    *node = (struct str8_list_node){ .data = str, .next = NULL };
+    *node = (struct str8_list_node){ .str = str, .next = NULL };
 
     if (list->tail != NULL) {
         list->tail->next = node;
@@ -282,7 +282,7 @@ void str8_list_pushfront(struct arena *arena, struct str8_list *list,
         return;
     }
 
-    *node = (struct str8_list_node){ .data = str, .next = list->head };
+    *node = (struct str8_list_node){ .str = str, .next = list->head };
 
     if (list->tail == NULL) {
         list->tail = node;
@@ -305,10 +305,10 @@ struct str8 str8_list_join(struct arena *arena, const struct str8_list *list)
     u8 *dst = data;
     const struct str8_list_node *current = list->head;
     while (current != NULL) {
-        if (current->data.len > 0) {
-            memcpy(dst, current->data.data, current->data.len);
+        if (current->str.len > 0) {
+            memcpy(dst, current->str.data, current->str.len);
         }
-        dst += current->data.len;
+        dst += current->str.len;
         current = current->next;
     }
     *dst = '\0';

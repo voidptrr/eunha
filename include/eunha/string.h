@@ -45,7 +45,7 @@ struct str8 {
  * @next: Next node, or NULL for the final node.
  */
 struct str8_list_node {
-    struct str8 data;
+    struct str8 str;
     struct str8_list_node *next;
 };
 
@@ -88,7 +88,7 @@ bool str8_equal(struct str8 first, struct str8 second);
  * Returns a view with leading and trailing ASCII whitespace removed. The
  * string bytes are not copied, and the returned view may be empty.
  */
-struct str8 str8_trim(struct str8 string);
+struct str8 str8_trim(struct str8 str);
 
 /**
  * Copies a string and a trailing null byte into the arena. Returns an empty
@@ -113,7 +113,7 @@ bool str8_contains(struct str8 haystack, struct str8 needle);
  * Returns whether string has prefix. Matching is bytewise and case-sensitive;
  * an empty prefix always matches.
  */
-bool str8_has_prefix(struct str8 string, struct str8 prefix);
+bool str8_has_prefix(struct str8 str, struct str8 prefix);
 
 /**
  * Splits string at each occurrence of the delimiter byte. The returned list
@@ -121,7 +121,7 @@ bool str8_has_prefix(struct str8 string, struct str8 prefix);
  * Empty fields are preserved. Returns an empty list when node allocation
  * cannot be satisfied.
  */
-struct str8_list str8_split(struct arena *arena, struct str8 string,
+struct str8_list str8_split(struct arena *arena, struct str8 str,
                             u8 delimiter);
 
 /**

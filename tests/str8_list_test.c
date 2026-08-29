@@ -56,10 +56,10 @@ static void test_push(void)
 
     assert(list.head != NULL);
     assert(list.tail != NULL);
-    assert(list.head->data.data == first.data);
-    assert(list.head->next->data.data == second.data);
+    assert(list.head->str.data == first.data);
+    assert(list.head->next->str.data == second.data);
     assert(list.head->next->next == list.tail);
-    assert(list.tail->data.data == third.data);
+    assert(list.tail->str.data == third.data);
     assert(list.tail->next == NULL);
     assert(list.total_len == first.len + second.len + third.len);
 
@@ -76,8 +76,8 @@ static void test_pushfront_empty_list(void)
 
     assert(list.head != NULL);
     assert(list.head == list.tail);
-    assert(list.head->data.data == string.data);
-    assert(list.head->data.len == string.len);
+    assert(list.head->str.data == string.data);
+    assert(list.head->str.len == string.len);
     assert(list.head->next == NULL);
     assert(list.total_len == string.len);
 
@@ -97,10 +97,10 @@ static void test_pushfront_prepends_nodes(void)
     str8_list_pushfront(arena, &list, second);
     str8_list_pushfront(arena, &list, first);
 
-    assert(list.head->data.data == first.data);
-    assert(list.head->next->data.data == second.data);
+    assert(list.head->str.data == first.data);
+    assert(list.head->next->str.data == second.data);
     assert(list.head->next->next == tail);
-    assert(tail->data.data == third.data);
+    assert(tail->str.data == third.data);
     assert(tail->next == NULL);
     assert(list.tail == tail);
     assert(list.total_len == first.len + second.len + third.len);
@@ -119,8 +119,8 @@ static void test_split_without_delimiter(void)
 
     assert(list.head != NULL);
     assert(list.head == list.tail);
-    assert(list.head->data.data == string.data);
-    assert(list.head->data.len == string.len);
+    assert(list.head->str.data == string.data);
+    assert(list.head->str.len == string.len);
     assert(list.head->next == NULL);
     assert(list.total_len == string.len);
 
@@ -138,13 +138,13 @@ static void test_split_preserves_empty_fields(void)
     for (size_t index = 0; index < sizeof(expected) / sizeof(expected[0]);
          ++index) {
         assert(node != NULL);
-        expect_str8(node->data, expected[index]);
+        expect_str8(node->str, expected[index]);
         node = node->next;
     }
 
     assert(node == NULL);
-    assert(list.head->data.data == string.data);
-    assert(list.tail->data.data == string.data + string.len);
+    assert(list.head->str.data == string.data);
+    assert(list.tail->str.data == string.data + string.len);
     assert(list.total_len == 6);
 
     arena_free(arena);
@@ -158,8 +158,8 @@ static void test_split_empty_string(void)
 
     assert(list.head != NULL);
     assert(list.head == list.tail);
-    assert(list.head->data.data == NULL);
-    assert(list.head->data.len == 0);
+    assert(list.head->str.data == NULL);
+    assert(list.head->str.len == 0);
     assert(list.head->next == NULL);
     assert(list.total_len == 0);
 
