@@ -26,11 +26,6 @@
       runtimeInputs = with pkgs; [findutils clang-tools alejandra];
       text = builtins.readFile ../scripts/format.sh;
     };
-    build = pkgs.writeShellApplication {
-      name = "build";
-      runtimeInputs = [pkgs.binutils pkgs.clang];
-      text = builtins.readFile ../scripts/build.sh;
-    };
     pre-checks = pkgs.writeShellApplication {
       name = "pre-checks";
       runtimeInputs = with pkgs; [
@@ -40,6 +35,7 @@
         clang
         clang-tools
         findutils
+        gnumake
       ];
       text = builtins.readFile ../scripts/pre-checks.sh;
     };
@@ -47,50 +43,39 @@
       root = ../.;
       fileset = pkgs.lib.fileset.unions [
         ../LICENSE
+        ../Makefile
         ../include
         ../src
       ];
     };
     mkEunhaLibrary = mode:
-      pkgs.clangStdenv.mkDerivation {
-        pname = "eunha";
-        version = "0.1.0";
+      pkgs.clangStdenv.mkDerivation (
+        {
+          pname = "eunha";
+          version = "0.1.0";
 
-        inherit src;
+          inherit src;
+          installFlags = ["PREFIX=$(out)"];
 
-        nativeBuildInputs = [build];
-        dontConfigure = true;
-
-        buildPhase = ''
-            runHook preBuild
-            build ${mode}
-          runHook postBuild
-        '';
-
-        installPhase = ''
-          runHook preInstall
-          install -Dm644 build/${mode}/libeunha.a "$out/lib/libeunha.a"
-          for header in include/eunha/*.h; do
-            install -Dm644 "$header" "$out/$header"
-          done
-          runHook postInstall
-        '';
-
-        meta = with pkgs.lib; {
-          homepage = "https://github.com/voidptrr/eunha";
-          license = licenses.mit;
-          maintainers = [
-            {
-              name = "Tommaso Bruno";
-              github = "voidptrr";
-            }
-          ];
-          platforms = platforms.linux;
-        };
-      };
+          meta = with pkgs.lib; {
+            homepage = "https://github.com/voidptrr/eunha";
+            license = licenses.mit;
+            maintainers = [
+              {
+                name = "Tommaso Bruno";
+                github = "voidptrr";
+              }
+            ];
+            platforms = platforms.linux;
+          };
+        }
+        // pkgs.lib.optionalAttrs (mode == "debug") {
+          makeFlags = ["MODE=debug"];
+        }
+      );
   in {
     packages = {
-      inherit build pre-checks format;
+      inherit pre-checks format;
       default = mkEunhaLibrary "release";
       debug = mkEunhaLibrary "debug";
     };

@@ -28,9 +28,10 @@
     devShells.default = pkgs.mkShell {
       CPATH = pkgs.lib.makeSearchPath "include" [pkgs.glibc.dev pkgs.llvmPackages.compiler-rt.dev];
       packages = [
+        pkgs.binutils
         pkgs.clang
         pkgs.clang-tools
-        config.packages.build
+        pkgs.gnumake
         config.packages.pre-checks
         config.packages.format
       ];
