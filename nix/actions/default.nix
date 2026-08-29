@@ -44,7 +44,7 @@
             {uses = "DeterminateSystems/magic-nix-cache-action@main";}
             {
               name = "Run checks";
-              run = "nix develop -c pre-checks";
+              run = "nix develop -c make pre-checks";
             }
           ];
         };

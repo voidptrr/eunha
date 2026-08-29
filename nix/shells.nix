@@ -20,20 +20,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 {
-  perSystem = {
-    config,
-    pkgs,
-    ...
-  }: {
+  perSystem = {pkgs, ...}: {
     devShells.default = pkgs.mkShell {
       CPATH = pkgs.lib.makeSearchPath "include" [pkgs.glibc.dev pkgs.llvmPackages.compiler-rt.dev];
-      packages = [
-        pkgs.binutils
-        pkgs.clang
-        pkgs.clang-tools
-        pkgs.gnumake
-        config.packages.pre-checks
-        config.packages.format
+      packages = with pkgs; [
+        alejandra
+        bear
+        binutils
+        clang
+        clang-tools
+        gnumake
       ];
     };
   };

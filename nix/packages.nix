@@ -21,24 +21,6 @@
 # SOFTWARE.
 {
   perSystem = {pkgs, ...}: let
-    format = pkgs.writeShellApplication {
-      name = "format";
-      runtimeInputs = with pkgs; [findutils clang-tools alejandra];
-      text = builtins.readFile ../scripts/format.sh;
-    };
-    pre-checks = pkgs.writeShellApplication {
-      name = "pre-checks";
-      runtimeInputs = with pkgs; [
-        alejandra
-        bear
-        binutils
-        clang
-        clang-tools
-        findutils
-        gnumake
-      ];
-      text = builtins.readFile ../scripts/pre-checks.sh;
-    };
     src = pkgs.lib.fileset.toSource {
       root = ../.;
       fileset = pkgs.lib.fileset.unions [
@@ -75,7 +57,6 @@
       );
   in {
     packages = {
-      inherit pre-checks format;
       default = mkEunhaLibrary "release";
       debug = mkEunhaLibrary "debug";
     };

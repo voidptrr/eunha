@@ -84,6 +84,8 @@ CFLAGS += $(COMMON_FLAGS) $(MODE_FLAGS)
 SOURCES := $(wildcard src/*.c)
 HEADERS := $(wildcard include/eunha/*.h)
 TEST_SOURCES := $(wildcard tests/*_test.c)
+FORMAT_SOURCES := $(HEADERS) $(SOURCES) $(TEST_SOURCES)
+TIDY_SOURCES := $(SOURCES) $(TEST_SOURCES)
 
 BUILD_DIR := build/$(MODE)
 LIBRARY := $(BUILD_DIR)/libeunha.a
@@ -91,7 +93,8 @@ OBJECTS := $(patsubst src/%.c,$(BUILD_DIR)/objects/%.o,$(SOURCES))
 DEPENDENCIES := $(OBJECTS:.o=.d)
 TEST_BINARIES := $(patsubst tests/%.c,build/tests/%,$(TEST_SOURCES))
 
-.PHONY: all debug release tests test check install clean
+.PHONY: all debug release tests test check install clean format format-check \
+	compile-commands lint pre-checks
 
 all: $(LIBRARY)
 
@@ -111,13 +114,33 @@ test: tests
 
 check: test
 
+format:
+	alejandra .
+	clang-format -i $(FORMAT_SOURCES)
+
+format-check:
+	alejandra --check .
+	clang-format --dry-run --Werror $(FORMAT_SOURCES)
+
+compile-commands:
+	bear --output compile_commands.json -- $(MAKE) -B debug
+	bear --append --output compile_commands.json -- $(MAKE) -B tests
+
+lint: compile-commands
+	clang-tidy -p . $(TIDY_SOURCES)
+
+pre-checks:
+	$(MAKE) format-check
+	$(MAKE) test
+	$(MAKE) lint
+
 install: $(LIBRARY)
 	mkdir -p "$(DESTDIR)$(PREFIX)/lib" "$(DESTDIR)$(PREFIX)/include/eunha"
 	install -m 0644 "$(LIBRARY)" "$(DESTDIR)$(PREFIX)/lib/libeunha.a"
 	install -m 0644 $(HEADERS) "$(DESTDIR)$(PREFIX)/include/eunha"
 
 clean:
-	rm -rf build
+	rm -rf build compile_commands.json
 
 $(LIBRARY): $(OBJECTS)
 	mkdir -p "$(@D)"
