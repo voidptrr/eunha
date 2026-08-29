@@ -66,6 +66,51 @@ static void test_push(void)
     arena_free(arena);
 }
 
+static void test_pushfront_empty_list(void)
+{
+    struct arena *arena = arena_alloc();
+    struct str8 string = str8_lit("hello");
+    struct str8_list list = { 0 };
+
+    str8_list_pushfront(arena, &list, string);
+
+    assert(list.head != NULL);
+    assert(list.head == list.tail);
+    assert(list.head->data.data == string.data);
+    assert(list.head->data.len == string.len);
+    assert(list.head->next == NULL);
+    assert(list.total_len == string.len);
+
+    arena_free(arena);
+}
+
+static void test_pushfront_prepends_nodes(void)
+{
+    struct arena *arena = arena_alloc();
+    struct str8 first = str8_lit("hello");
+    struct str8 second = str8_lit(", ");
+    struct str8 third = str8_lit("world");
+    struct str8_list list = { 0 };
+
+    str8_list_pushfront(arena, &list, third);
+    struct str8_list_node *tail = list.tail;
+    str8_list_pushfront(arena, &list, second);
+    str8_list_pushfront(arena, &list, first);
+
+    assert(list.head->data.data == first.data);
+    assert(list.head->next->data.data == second.data);
+    assert(list.head->next->next == tail);
+    assert(tail->data.data == third.data);
+    assert(tail->next == NULL);
+    assert(list.tail == tail);
+    assert(list.total_len == first.len + second.len + third.len);
+
+    struct str8 joined = str8_list_join(arena, &list);
+    expect_str8(joined, "hello, world");
+
+    arena_free(arena);
+}
+
 static void test_join(void)
 {
     struct arena *arena = arena_alloc();
@@ -105,6 +150,8 @@ static void test_join_empty(void)
 int main(void)
 {
     test_push();
+    test_pushfront_empty_list();
+    test_pushfront_prepends_nodes();
     test_join();
     test_join_empty();
     return 0;

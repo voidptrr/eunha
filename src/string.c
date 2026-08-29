@@ -182,6 +182,33 @@ void str8_list_push(struct arena *arena, struct str8_list *list,
     list->total_len = total_len;
 }
 
+void str8_list_pushfront(struct arena *arena, struct str8_list *list,
+                         struct str8 str)
+{
+    assert(arena != NULL);
+    assert(list != NULL);
+    assert(str8_is_valid(str));
+
+    size_t total_len = 0;
+    if (ckd_add(&total_len, list->total_len, str.len)) {
+        return;
+    }
+
+    struct str8_list_node *node = arena_push_type(arena, struct str8_list_node);
+    if (node == NULL) {
+        return;
+    }
+
+    *node = (struct str8_list_node){ .data = str, .next = list->head };
+
+    if (list->tail == NULL) {
+        list->tail = node;
+    }
+
+    list->head = node;
+    list->total_len = total_len;
+}
+
 struct str8 str8_list_join(struct arena *arena, const struct str8_list *list)
 {
     assert(arena != NULL);

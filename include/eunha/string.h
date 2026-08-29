@@ -112,6 +112,14 @@ void str8_list_push(struct arena *arena, struct str8_list *list,
                     struct str8 str);
 
 /**
+ * Prepends str to list by allocating a list node from arena. The string bytes
+ * are not copied, so they must remain valid for as long as the list is used.
+ * Leaves list unchanged when the node allocation cannot be satisfied.
+ */
+void str8_list_pushfront(struct arena *arena, struct str8_list *list,
+                         struct str8 str);
+
+/**
  * Copies the strings in list into one contiguous, null-terminated arena
  * allocation and returns a view over it. The list and its strings remain
  * unchanged. Returns a zero view when the allocation cannot be satisfied.
