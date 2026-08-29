@@ -79,6 +79,18 @@ struct str8 str8_cstring(const char *cstr);
 size_t str8_len(struct str8 str);
 
 /**
+ * Returns whether first and second contain the same bytes. Comparison is
+ * bytewise and case-sensitive; two empty strings are equal.
+ */
+bool str8_equal(struct str8 first, struct str8 second);
+
+/**
+ * Returns a view with leading and trailing ASCII whitespace removed. The
+ * string bytes are not copied, and the returned view may be empty.
+ */
+struct str8 str8_trim(struct str8 string);
+
+/**
  * Copies a string and a trailing null byte into the arena. Returns an empty
  * zero view when the allocation cannot be satisfied.
  */
@@ -102,6 +114,15 @@ bool str8_contains(struct str8 haystack, struct str8 needle);
  * an empty prefix always matches.
  */
 bool str8_has_prefix(struct str8 string, struct str8 prefix);
+
+/**
+ * Splits string at each occurrence of the delimiter byte. The returned list
+ * nodes are arena-owned, but their string views reference the original bytes.
+ * Empty fields are preserved. Returns an empty list when node allocation
+ * cannot be satisfied.
+ */
+struct str8_list str8_split(struct arena *arena, struct str8 string,
+                            u8 delimiter);
 
 /**
  * Appends str to list by allocating a list node from arena. The string bytes

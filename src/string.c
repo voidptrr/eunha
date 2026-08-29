@@ -35,6 +35,11 @@ static bool str8_is_valid(struct str8 str)
     return (str.len == 0 || str.data != NULL) != 0;
 }
 
+static bool str8_is_whitespace(u8 byte)
+{
+    return (byte == ' ' || (byte >= '\t' && byte <= '\r')) != 0;
+}
+
 static u8 *str8_push_buffer(struct arena *arena, size_t len)
 {
     assert(arena != NULL);
@@ -66,6 +71,40 @@ size_t str8_len(struct str8 str)
 {
     assert(str8_is_valid(str));
     return str.len;
+}
+
+bool str8_equal(struct str8 first, struct str8 second)
+{
+    assert(str8_is_valid(first));
+    assert(str8_is_valid(second));
+
+    if (first.len != second.len) {
+        return false;
+    }
+
+    return memcmp(first.data, second.data, first.len) == 0;
+}
+
+struct str8 str8_trim(struct str8 string)
+{
+    assert(str8_is_valid(string));
+
+    if (string.len == 0) {
+        return string;
+    }
+
+    size_t start = 0;
+    size_t end = string.len;
+
+    while (start < string.len && (int)str8_is_whitespace(string.data[start])) {
+        start += 1;
+    }
+
+    while (end > start && (int)str8_is_whitespace(string.data[end - 1])) {
+        end -= 1;
+    }
+
+    return str8(string.data + start, end - start);
 }
 
 struct str8 str8_copy(struct arena *arena, struct str8 source)
@@ -151,6 +190,46 @@ bool str8_has_prefix(struct str8 string, struct str8 prefix)
     return (prefix.len <= string.len &&
             (prefix.len == 0 ||
              memcmp(string.data, prefix.data, prefix.len) == 0)) != 0;
+}
+
+struct str8_list str8_split(struct arena *arena, struct str8 string,
+                            u8 delimiter)
+{
+    assert(arena != NULL);
+    assert(str8_is_valid(string));
+
+    size_t initial_position = arena_position(arena);
+    struct str8_list list = { 0 };
+    const u8 *start = string.data;
+    size_t remaining = string.len;
+
+    while (remaining > 0) {
+        const u8 *position = memchr(start, delimiter, remaining);
+        if (position == NULL) {
+            break;
+        }
+
+        struct str8_list_node *previous_tail = list.tail;
+        size_t part_len = (size_t)(position - start);
+        str8_list_push(arena, &list, str8(start, part_len));
+        if (list.tail == previous_tail) {
+            arena_pop_to(arena, initial_position);
+            return (struct str8_list){ 0 };
+        }
+
+        size_t consumed = part_len + 1;
+        start = position + 1;
+        remaining -= consumed;
+    }
+
+    struct str8_list_node *previous_tail = list.tail;
+    str8_list_push(arena, &list, str8(start, remaining));
+    if (list.tail == previous_tail) {
+        arena_pop_to(arena, initial_position);
+        return (struct str8_list){ 0 };
+    }
+
+    return list;
 }
 
 void str8_list_push(struct arena *arena, struct str8_list *list,

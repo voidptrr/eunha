@@ -111,6 +111,61 @@ static void test_pushfront_prepends_nodes(void)
     arena_free(arena);
 }
 
+static void test_split_without_delimiter(void)
+{
+    struct arena *arena = arena_alloc();
+    struct str8 string = str8_lit("hello");
+    struct str8_list list = str8_split(arena, string, ',');
+
+    assert(list.head != NULL);
+    assert(list.head == list.tail);
+    assert(list.head->data.data == string.data);
+    assert(list.head->data.len == string.len);
+    assert(list.head->next == NULL);
+    assert(list.total_len == string.len);
+
+    arena_free(arena);
+}
+
+static void test_split_preserves_empty_fields(void)
+{
+    struct arena *arena = arena_alloc();
+    struct str8 string = str8_lit(",one,,two,");
+    const char *expected[] = { "", "one", "", "two", "" };
+    struct str8_list list = str8_split(arena, string, ',');
+
+    const struct str8_list_node *node = list.head;
+    for (size_t index = 0; index < sizeof(expected) / sizeof(expected[0]);
+         ++index) {
+        assert(node != NULL);
+        expect_str8(node->data, expected[index]);
+        node = node->next;
+    }
+
+    assert(node == NULL);
+    assert(list.head->data.data == string.data);
+    assert(list.tail->data.data == string.data + string.len);
+    assert(list.total_len == 6);
+
+    arena_free(arena);
+}
+
+static void test_split_empty_string(void)
+{
+    struct arena *arena = arena_alloc();
+    struct str8 string = { 0 };
+    struct str8_list list = str8_split(arena, string, ',');
+
+    assert(list.head != NULL);
+    assert(list.head == list.tail);
+    assert(list.head->data.data == NULL);
+    assert(list.head->data.len == 0);
+    assert(list.head->next == NULL);
+    assert(list.total_len == 0);
+
+    arena_free(arena);
+}
+
 static void test_join(void)
 {
     struct arena *arena = arena_alloc();
@@ -152,6 +207,9 @@ int main(void)
     test_push();
     test_pushfront_empty_list();
     test_pushfront_prepends_nodes();
+    test_split_without_delimiter();
+    test_split_preserves_empty_fields();
+    test_split_empty_string();
     test_join();
     test_join_empty();
     return 0;
