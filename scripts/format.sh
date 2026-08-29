@@ -25,5 +25,5 @@
 set -eu
 
 alejandra .
-find src tests -type f \( -name '*.c' -o -name '*.h' \) \
+find include src tests -type f \( -name '*.c' -o -name '*.h' \) \
     -exec clang-format -i {} +

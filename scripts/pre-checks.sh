@@ -25,7 +25,7 @@
 set -eu
 
 alejandra --check .
-find src tests -type f \( -name '*.c' -o -name '*.h' \) \
+find include src tests -type f \( -name '*.c' -o -name '*.h' \) \
     -exec clang-format --dry-run --Werror {} +
 
 bear --output compile_commands.json -- ./scripts/build.sh debug

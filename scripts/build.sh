@@ -33,7 +33,7 @@ usage() {
 
 common_flags=(
     -std=c23
-    -Isrc
+    -Iinclude
     -Wall
     -Wextra
     -Wpedantic
@@ -72,46 +72,50 @@ release_flags=(
     -UNDEBUG
     -D_FORTIFY_SOURCE=3
     -fstack-protector-strong
-    -fPIE
-    -pie
-    '-Wl,-z,relro'
-    '-Wl,-z,now'
+    -fPIC
 )
 
 shopt -s globstar nullglob
-app_sources=(src/**/*.c)
+library_sources=(src/**/*.c)
 test_sources=(tests/**/*_test.c)
-module_sources=()
 
-for source in "${app_sources[@]}"; do
-    [[ "$source" == "src/main.c" ]] || module_sources+=("$source")
-done
-
-build_app() {
+build_library() {
     local mode=$1
     shift
+    local archive="build/$mode/libeunha.a"
+    local source object
+    local objects=()
 
-    mkdir -p "build/$mode"
-    clang "${common_flags[@]}" "$@" "${app_sources[@]}" -o "build/$mode/eunha"
+    for source in "${library_sources[@]}"; do
+        object="build/$mode/objects/${source%.c}.o"
+        mkdir -p "${object%/*}"
+        clang "${common_flags[@]}" "$@" -MMD -MP -c "$source" -o "$object"
+        objects+=("$object")
+    done
+
+    rm -f "$archive"
+    ar rcs "$archive" "${objects[@]}"
 }
 
 build_tests() {
     local source target
 
+    build_library debug "${debug_flags[@]}"
+
     for source in "${test_sources[@]}"; do
         target="build/${source%.c}"
         mkdir -p "${target%/*}"
         clang "${common_flags[@]}" "${debug_flags[@]}" \
-            "${module_sources[@]}" "$source" -o "$target"
+            "$source" build/debug/libeunha.a -o "$target"
     done
 }
 
 case "${1:-debug}" in
     debug)
-        build_app debug "${debug_flags[@]}"
+        build_library debug "${debug_flags[@]}"
         ;;
     release)
-        build_app release "${release_flags[@]}"
+        build_library release "${release_flags[@]}"
         ;;
     tests)
         build_tests

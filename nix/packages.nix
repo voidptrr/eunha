@@ -28,7 +28,7 @@
     };
     build = pkgs.writeShellApplication {
       name = "build";
-      runtimeInputs = [pkgs.clang];
+      runtimeInputs = [pkgs.binutils pkgs.clang];
       text = builtins.readFile ../scripts/build.sh;
     };
     pre-checks = pkgs.writeShellApplication {
@@ -36,6 +36,7 @@
       runtimeInputs = with pkgs; [
         alejandra
         bear
+        binutils
         clang
         clang-tools
         findutils
@@ -46,10 +47,11 @@
       root = ../.;
       fileset = pkgs.lib.fileset.unions [
         ../LICENSE
+        ../include
         ../src
       ];
     };
-    mkEunha = mode:
+    mkEunhaLibrary = mode:
       pkgs.clangStdenv.mkDerivation {
         pname = "eunha";
         version = "0.1.0";
@@ -67,14 +69,16 @@
 
         installPhase = ''
           runHook preInstall
-          install -Dm755 build/${mode}/eunha "$out/bin/eunha"
+          install -Dm644 build/${mode}/libeunha.a "$out/lib/libeunha.a"
+          for header in include/eunha/*.h; do
+            install -Dm644 "$header" "$out/$header"
+          done
           runHook postInstall
         '';
 
         meta = with pkgs.lib; {
           homepage = "https://github.com/voidptrr/eunha";
           license = licenses.mit;
-          mainProgram = "eunha";
           maintainers = [
             {
               name = "Tommaso Bruno";
@@ -87,8 +91,8 @@
   in {
     packages = {
       inherit build pre-checks format;
-      default = mkEunha "release";
-      debug = mkEunha "debug";
+      default = mkEunhaLibrary "release";
+      debug = mkEunhaLibrary "debug";
     };
   };
 }

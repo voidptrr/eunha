@@ -22,13 +22,12 @@
  * SOFTWARE.
  */
 
-#ifndef BASE_STRING_H
-#define BASE_STRING_H
+#ifndef EUNHA_STRING_H
+#define EUNHA_STRING_H
 
+#include <eunha/arena.h>
+#include <eunha/core.h>
 #include <stddef.h>
-
-#include "base/base_arena.h"
-#include "base/base_core.h"
 
 /**
  * struct str8 - Non-owning immutable byte-string view.

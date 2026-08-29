@@ -23,12 +23,11 @@
  */
 
 #include <assert.h>
+#include <eunha/arena.h>
+#include <eunha/core.h>
 #include <stdckdint.h>
 #include <stdint.h>
 #include <stdlib.h>
-
-#include "base/base_arena.h"
-#include "base/base_core.h"
 
 static void *arena_region_push(struct arena_region *region, size_t size,
                                size_t alignment)

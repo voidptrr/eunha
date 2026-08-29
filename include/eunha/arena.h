@@ -22,13 +22,12 @@
  * SOFTWARE.
  */
 
-#ifndef BASE_ARENA_H
-#define BASE_ARENA_H
+#ifndef EUNHA_ARENA_H
+#define EUNHA_ARENA_H
 
+#include <eunha/core.h>
 #include <stdalign.h>
 #include <stddef.h>
-
-#include "base/base_core.h"
 
 enum arena_flags {
     NO_CHAIN = 1 << 0,

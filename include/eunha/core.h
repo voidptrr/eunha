@@ -22,8 +22,8 @@
  * SOFTWARE.
  */
 
-#ifndef BASE_CORE_H
-#define BASE_CORE_H
+#ifndef EUNHA_CORE_H
+#define EUNHA_CORE_H
 
 #include <stddef.h>
 #include <stdint.h>
