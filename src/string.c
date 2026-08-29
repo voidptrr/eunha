@@ -196,8 +196,7 @@ bool str8_has_prefix(struct str8 str, struct str8 prefix)
              memcmp(str.data, prefix.data, prefix.len) == 0)) != 0;
 }
 
-struct str8_list str8_split(struct arena *arena, struct str8 str,
-                            u8 delimiter)
+struct str8_list str8_split(struct arena *arena, struct str8 str, u8 delimiter)
 {
     assert(arena != NULL);
     assert(str8_is_valid(str));

@@ -121,8 +121,7 @@ bool str8_has_prefix(struct str8 str, struct str8 prefix);
  * Empty fields are preserved. Returns an empty list when node allocation
  * cannot be satisfied.
  */
-struct str8_list str8_split(struct arena *arena, struct str8 str,
-                            u8 delimiter);
+struct str8_list str8_split(struct arena *arena, struct str8 str, u8 delimiter);
 
 /**
  * Appends str to list by allocating a list node from arena. The string bytes
