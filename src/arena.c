@@ -57,12 +57,12 @@ static struct arena_region *arena_region_alloc(size_t capacity)
     /* Allocate the header and flexible byte buffer together. */
     size_t allocation_size = 0;
     if (ckd_add(&allocation_size, sizeof(struct arena_region), capacity)) {
-        return NULL;
+        abort();
     }
 
     struct arena_region *region = malloc(allocation_size);
     if (region == NULL) {
-        return NULL;
+        abort();
     }
 
     region->prev = NULL;
@@ -78,6 +78,10 @@ struct arena *arena_alloc_params(const struct arena_params *params)
     assert(params != NULL);
 
     struct arena *arena = malloc(sizeof(struct arena));
+    if (arena == NULL) {
+        abort();
+    }
+
     arena->block_capacity =
         params->block_capacity != 0 ? params->block_capacity : kb(64);
     arena->flags = params->flags;
@@ -100,14 +104,14 @@ void *arena_push(struct arena *arena, size_t size, size_t alignment)
     }
 
     if (region != NULL && (arena->flags & NO_CHAIN) != 0) {
-        return NULL;
+        abort();
     }
 
     /* A new region must accommodate the request and worst-case alignment
      * padding, whose maximum is alignment - 1 bytes. */
     size_t required_capacity = 0;
     if (ckd_add(&required_capacity, size, alignment - (size_t)1)) {
-        return NULL;
+        abort();
     }
 
     /* Chained arenas give unusually large pushes a dedicated larger region. */
@@ -121,24 +125,20 @@ void *arena_push(struct arena *arena, size_t size, size_t alignment)
     size_t base_position = 0;
     if (region != NULL &&
         ckd_add(&base_position, region->base_position, region->capacity)) {
-        return NULL;
+        abort();
     }
     if (region_capacity > SIZE_MAX - base_position) {
-        return NULL;
+        abort();
     }
 
     struct arena_region *new_region = arena_region_alloc(region_capacity);
-    if (new_region == NULL) {
-        return NULL;
-    }
     new_region->base_position = base_position;
 
-    /* Do not link the new region until its first push succeeds, leaving the
-     * arena unchanged if a fixed-size region cannot satisfy the request. */
+    /* A correctly sized region must be able to satisfy its first push. */
     result = arena_region_push(new_region, size, alignment);
     if (result == NULL) {
         free(new_region);
-        return NULL;
+        abort();
     }
 
     new_region->prev = region;

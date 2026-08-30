@@ -99,13 +99,13 @@ struct arena_temp {
 #define arena_alloc(...) \
     arena_alloc_params(&(struct arena_params){ __VA_ARGS__ })
 
-/** Creates an arena using the supplied parameter structure. */
+/** Creates an arena using the supplied parameters, or aborts on failure. */
 struct arena *arena_alloc_params(const struct arena_params *params);
 
 /**
  * Returns size bytes of uninitialized arena storage beginning at an address
- * divisible by alignment. Alignment must be a nonzero power of two. Returns
- * NULL when the request cannot be satisfied; NO_CHAIN limits the arena to one
+ * divisible by alignment. Alignment must be a nonzero power of two. Aborts
+ * when the request cannot be satisfied; NO_CHAIN limits the arena to one
  * region of block_capacity bytes.
  */
 void *arena_push(struct arena *arena, size_t size, size_t alignment);

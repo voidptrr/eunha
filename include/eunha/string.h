@@ -91,14 +91,15 @@ bool str8_equal(struct str8 first, struct str8 second);
 struct str8 str8_trim(struct str8 str);
 
 /**
- * Copies a string and a trailing null byte into the arena. Returns an empty
- * zero view when the allocation cannot be satisfied.
+ * Copies a string and a trailing null byte into the arena. Aborts if the
+ * required size cannot be represented or allocated.
  */
 struct str8 str8_copy(struct arena *arena, struct str8 source);
 
 /**
  * Returns a new arena-owned concatenation of first and second. The inputs
- * remain unchanged. Returns a zero view on allocation failure.
+ * remain unchanged. Aborts if the required size cannot be represented or
+ * allocated.
  */
 struct str8 str8_cat(struct arena *arena, struct str8 first,
                      struct str8 second);
@@ -118,15 +119,14 @@ bool str8_has_prefix(struct str8 str, struct str8 prefix);
 /**
  * Splits string at each occurrence of the delimiter byte. The returned list
  * nodes are arena-owned, but their string views reference the original bytes.
- * Empty fields are preserved. Returns an empty list when node allocation
- * cannot be satisfied.
+ * Empty fields are preserved. Aborts if node storage cannot be allocated.
  */
 struct str8_list str8_split(struct arena *arena, struct str8 str, u8 delimiter);
 
 /**
  * Appends str to list by allocating a list node from arena. The string bytes
  * are not copied, so they must remain valid for as long as the list is used.
- * Leaves list unchanged when the node allocation cannot be satisfied.
+ * Aborts if the total length overflows or node storage cannot be allocated.
  */
 void str8_list_push(struct arena *arena, struct str8_list *list,
                     struct str8 str);
@@ -134,7 +134,7 @@ void str8_list_push(struct arena *arena, struct str8_list *list,
 /**
  * Prepends str to list by allocating a list node from arena. The string bytes
  * are not copied, so they must remain valid for as long as the list is used.
- * Leaves list unchanged when the node allocation cannot be satisfied.
+ * Aborts if the total length overflows or node storage cannot be allocated.
  */
 void str8_list_pushfront(struct arena *arena, struct str8_list *list,
                          struct str8 str);
@@ -142,7 +142,7 @@ void str8_list_pushfront(struct arena *arena, struct str8_list *list,
 /**
  * Copies the strings in list into one contiguous, null-terminated arena
  * allocation and returns a view over it. The list and its strings remain
- * unchanged. Returns a zero view when the allocation cannot be satisfied.
+ * unchanged. Aborts if the required size cannot be represented or allocated.
  */
 struct str8 str8_list_join(struct arena *arena, const struct str8_list *list);
 

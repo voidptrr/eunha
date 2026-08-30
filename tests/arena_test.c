@@ -23,11 +23,33 @@
  */
 
 #include <assert.h>
+#include <signal.h>
 #include <stdalign.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #include <eunha/arena.h>
 #include <eunha/core.h>
+
+typedef void (*abort_test_fn)(void);
+
+static void assert_aborts(abort_test_fn function)
+{
+    pid_t pid = fork();
+    assert(pid >= 0);
+
+    if (pid == 0) {
+        function();
+        _exit(0);
+    }
+
+    int status = 0;
+    assert(waitpid(pid, &status, 0) == pid);
+    assert(WIFSIGNALED(status));
+    assert(WTERMSIG(status) == SIGABRT);
+}
 
 static void test_alignment_and_typed_pushes(void)
 {
@@ -83,17 +105,16 @@ static void test_oversized_push_adds_region(void)
     arena_free(arena);
 }
 
-static void test_overflow_does_not_add_region(void)
+static void push_overflow(void)
 {
     struct arena *arena = arena_alloc();
-    assert(arena != NULL);
     assert(arena_push(arena, 1, 1) != NULL);
+    (void)arena_push(arena, SIZE_MAX, 2);
+}
 
-    struct arena_region *before_overflow = arena->current;
-    assert(arena_push(arena, SIZE_MAX, 2) == NULL);
-    assert(arena->current == before_overflow);
-
-    arena_free(arena);
+static void test_overflow_aborts(void)
+{
+    assert_aborts(push_overflow);
 }
 
 static void test_custom_block_capacity_is_reused(void)
@@ -113,32 +134,27 @@ static void test_custom_block_capacity_is_reused(void)
     arena_free(arena);
 }
 
-static void test_no_grow_uses_one_region(void)
+static void exhaust_fixed_arena(void)
 {
     struct arena *arena = arena_alloc(.flags = NO_CHAIN);
-    assert(arena != NULL);
     assert(arena_push(arena, kb(64), 1) != NULL);
-
-    struct arena_region *only_region = arena->current;
-    assert(arena_push(arena, 1, 1) == NULL);
-    assert(arena->current == only_region);
-    assert(arena->current->prev == NULL);
-
-    arena_free(arena);
+    (void)arena_push(arena, 1, 1);
 }
 
-static void test_no_grow_rejects_oversized_first_push(void)
+static void test_fixed_arena_exhaustion_aborts(void)
+{
+    assert_aborts(exhaust_fixed_arena);
+}
+
+static void oversized_fixed_arena_push(void)
 {
     struct arena *arena = arena_alloc(.flags = NO_CHAIN);
-    assert(arena != NULL);
-    assert(arena_push(arena, kb(64) + 1, 1) == NULL);
-    assert(arena->current == NULL);
+    (void)arena_push(arena, kb(64) + 1, 1);
+}
 
-    assert(arena_push(arena, 1, 1) != NULL);
-    assert(arena->current->capacity == kb(64));
-    assert(arena->current->prev == NULL);
-
-    arena_free(arena);
+static void test_oversized_fixed_arena_push_aborts(void)
+{
+    assert_aborts(oversized_fixed_arena_push);
 }
 
 static void test_empty_arena_position_is_zero(void)
@@ -202,10 +218,10 @@ int main(void)
     test_empty_arena_position_is_zero();
     test_alignment_and_typed_pushes();
     test_oversized_push_adds_region();
-    test_overflow_does_not_add_region();
+    test_overflow_aborts();
     test_custom_block_capacity_is_reused();
-    test_no_grow_uses_one_region();
-    test_no_grow_rejects_oversized_first_push();
+    test_fixed_arena_exhaustion_aborts();
+    test_oversized_fixed_arena_push_aborts();
     test_pop_restores_position_in_current_region();
     test_temp_end_restores_position_across_regions();
     return 0;

@@ -25,6 +25,7 @@
 #include <assert.h>
 #include <stdckdint.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include <eunha/arena.h>
 #include <eunha/core.h>
@@ -40,15 +41,21 @@ static bool str8_is_whitespace(u8 byte)
     return (byte == ' ' || (byte >= '\t' && byte <= '\r')) != 0;
 }
 
+static size_t str8_size_add(size_t first, size_t second)
+{
+    size_t result = 0;
+    if (ckd_add(&result, first, second)) {
+        abort();
+    }
+
+    return result;
+}
+
 static u8 *str8_push_buffer(struct arena *arena, size_t len)
 {
     assert(arena != NULL);
 
-    size_t allocation_size = 0;
-    if (ckd_add(&allocation_size, len, (size_t)1)) {
-        return NULL;
-    }
-
+    size_t allocation_size = str8_size_add(len, 1);
     return arena_push_array(arena, u8, allocation_size);
 }
 
@@ -116,10 +123,6 @@ struct str8 str8_copy(struct arena *arena, struct str8 source)
     assert(str8_is_valid(source));
 
     u8 *data = str8_push_buffer(arena, source.len);
-    if (data == NULL) {
-        return (struct str8){ 0 };
-    }
-
     if (source.len > 0) {
         memcpy(data, source.data, source.len);
     }
@@ -133,16 +136,8 @@ struct str8 str8_cat(struct arena *arena, struct str8 first, struct str8 second)
     assert(str8_is_valid(first));
     assert(str8_is_valid(second));
 
-    size_t len = 0;
-    if (ckd_add(&len, first.len, second.len)) {
-        return (struct str8){ 0 };
-    }
-
+    size_t len = str8_size_add(first.len, second.len);
     u8 *data = str8_push_buffer(arena, len);
-    if (data == NULL) {
-        return (struct str8){ 0 };
-    }
-
     if (first.len > 0) {
         memcpy(data, first.data, first.len);
     }
@@ -201,7 +196,6 @@ struct str8_list str8_split(struct arena *arena, struct str8 str, u8 delimiter)
     assert(arena != NULL);
     assert(str8_is_valid(str));
 
-    size_t initial_position = arena_position(arena);
     struct str8_list list = { 0 };
     const u8 *start = str.data;
     size_t remaining = str.len;
@@ -212,26 +206,15 @@ struct str8_list str8_split(struct arena *arena, struct str8 str, u8 delimiter)
             break;
         }
 
-        struct str8_list_node *previous_tail = list.tail;
         size_t part_len = (size_t)(position - start);
         str8_list_push(arena, &list, str8(start, part_len));
-        if (list.tail == previous_tail) {
-            arena_pop_to(arena, initial_position);
-            return (struct str8_list){ 0 };
-        }
 
         size_t consumed = part_len + 1;
         start = position + 1;
         remaining -= consumed;
     }
 
-    struct str8_list_node *previous_tail = list.tail;
     str8_list_push(arena, &list, str8(start, remaining));
-    if (list.tail == previous_tail) {
-        arena_pop_to(arena, initial_position);
-        return (struct str8_list){ 0 };
-    }
-
     return list;
 }
 
@@ -242,16 +225,8 @@ void str8_list_push(struct arena *arena, struct str8_list *list,
     assert(list != NULL);
     assert(str8_is_valid(str));
 
-    size_t total_len = 0;
-    if (ckd_add(&total_len, list->total_len, str.len)) {
-        return;
-    }
-
+    size_t total_len = str8_size_add(list->total_len, str.len);
     struct str8_list_node *node = arena_push_type(arena, struct str8_list_node);
-    if (node == NULL) {
-        return;
-    }
-
     *node = (struct str8_list_node){ .str = str, .next = NULL };
 
     if (list->tail != NULL) {
@@ -271,16 +246,8 @@ void str8_list_pushfront(struct arena *arena, struct str8_list *list,
     assert(list != NULL);
     assert(str8_is_valid(str));
 
-    size_t total_len = 0;
-    if (ckd_add(&total_len, list->total_len, str.len)) {
-        return;
-    }
-
+    size_t total_len = str8_size_add(list->total_len, str.len);
     struct str8_list_node *node = arena_push_type(arena, struct str8_list_node);
-    if (node == NULL) {
-        return;
-    }
-
     *node = (struct str8_list_node){ .str = str, .next = list->head };
 
     if (list->tail == NULL) {
@@ -297,10 +264,6 @@ struct str8 str8_list_join(struct arena *arena, const struct str8_list *list)
     assert(list != NULL);
 
     u8 *data = str8_push_buffer(arena, list->total_len);
-    if (data == NULL) {
-        return (struct str8){ 0 };
-    }
-
     u8 *dst = data;
     const struct str8_list_node *current = list->head;
     while (current != NULL) {
