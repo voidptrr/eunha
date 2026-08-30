@@ -25,9 +25,9 @@
 #ifndef EUNHA_ARENA_H
 #define EUNHA_ARENA_H
 
-#include <eunha/core.h>
 #include <stdalign.h>
 #include <stddef.h>
+#include <eunha/core.h>
 
 enum arena_flags {
     NO_CHAIN = 1 << 0,

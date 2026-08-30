@@ -62,12 +62,14 @@ DerivePointerAlignment: false
 ExperimentalAutoDetectBinPacking: false
 ForEachMacros:
   - 'for_each_char'
-IncludeBlocks: Regroup
+IncludeBlocks: Merge
 IncludeCategories:
+  - Regex: '^<eunha/.*>$'
+    Priority: 2
   - Regex: '^<.*>$'
     Priority: 1
   - Regex: '^".*"$'
-    Priority: 2
+    Priority: 3
 IncludeIsMainRegex: 'a^'
 IndentCaseLabels: false
 IndentGotoLabels: false

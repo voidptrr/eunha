@@ -23,11 +23,11 @@
  */
 
 #include <assert.h>
-#include <eunha/arena.h>
-#include <eunha/core.h>
 #include <stdalign.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <eunha/arena.h>
+#include <eunha/core.h>
 
 static void test_alignment_and_typed_pushes(void)
 {

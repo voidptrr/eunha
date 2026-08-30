@@ -23,10 +23,10 @@
  */
 
 #include <assert.h>
+#include <string.h>
 #include <eunha/arena.h>
 #include <eunha/core.h>
 #include <eunha/string.h>
-#include <string.h>
 
 static void expect_str8(struct str8 string, const char *expected)
 {

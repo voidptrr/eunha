@@ -25,9 +25,9 @@
 #ifndef EUNHA_STRING_H
 #define EUNHA_STRING_H
 
+#include <stddef.h>
 #include <eunha/arena.h>
 #include <eunha/core.h>
-#include <stddef.h>
 
 /**
  * struct str8 - Non-owning immutable byte-string view.

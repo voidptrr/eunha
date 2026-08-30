@@ -23,12 +23,12 @@
  */
 
 #include <assert.h>
-#include <eunha/arena.h>
-#include <eunha/core.h>
-#include <eunha/string.h>
 #include <stdckdint.h>
 #include <stddef.h>
 #include <string.h>
+#include <eunha/arena.h>
+#include <eunha/core.h>
+#include <eunha/string.h>
 
 static bool str8_is_valid(struct str8 str)
 {
