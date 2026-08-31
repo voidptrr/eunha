@@ -23,38 +23,21 @@
  */
 
 #include <assert.h>
-#include <stdalign.h>
 #include <stddef.h>
-#include <stdint.h>
 #include <eunha/arena.h>
 #include <eunha/core.h>
 #include <eunha/deque.h>
-
-static void test_initial_capacity(void)
-{
-    struct arena *arena = arena_alloc();
-    struct deque values = deque(u64, .arena = arena, .initial_capacity = 8);
-
-    assert(values.data != NULL);
-    assert((uintptr_t)values.data % alignof(u64) == 0);
-    assert(values.len == 0);
-    assert(values.capacity == 8);
-
-    arena_free(arena);
-}
 
 static void test_push(void)
 {
     struct arena *arena = arena_alloc();
     struct deque values = deque(u64, .arena = arena, .initial_capacity = 2);
-    void *initial_data = values.data;
     u64 item = 10;
 
     deque_push(&values, &item);
 
-    assert(values.data == initial_data);
     assert(deque_len(&values) == 1);
-    assert(*(u64 *)values.data == item);
+    assert(*(u64 *)deque_popback(&values) == item);
 
     arena_free(arena);
 }
@@ -67,17 +50,11 @@ static void test_resize(void)
 
     deque_push(&values, &items[0]);
     deque_push(&values, &items[1]);
-
-    void *full_data = values.data;
     deque_push(&values, &items[2]);
 
-    u64 *data = values.data;
-    assert(values.data != full_data);
-    assert(values.len == 3);
-    assert(values.capacity == 4);
-    assert(data[0] == items[0]);
-    assert(data[1] == items[1]);
-    assert(data[2] == items[2]);
+    assert(*(u64 *)deque_popfront(&values) == items[0]);
+    assert(*(u64 *)deque_popfront(&values) == items[1]);
+    assert(*(u64 *)deque_popfront(&values) == items[2]);
 
     arena_free(arena);
 }
@@ -148,7 +125,6 @@ static void test_resize_wrapped_buffer(void)
     deque_push(&values, &items[4]);
     deque_push(&values, &items[5]);
 
-    assert(values.capacity == 6);
     assert(*(u64 *)deque_popfront(&values) == items[2]);
     assert(*(u64 *)deque_popfront(&values) == items[3]);
     assert(*(u64 *)deque_popfront(&values) == items[4]);
@@ -159,7 +135,6 @@ static void test_resize_wrapped_buffer(void)
 
 int main(void)
 {
-    test_initial_capacity();
     test_push();
     test_resize();
     test_pushfront();

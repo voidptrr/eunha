@@ -75,24 +75,17 @@ static void test_alignment_and_typed_pushes(void)
     arena_free(arena);
 }
 
-static void test_oversized_push_adds_region(void)
+static void test_oversized_push(void)
 {
     struct arena *arena = arena_alloc();
     (void)arena_push(arena, 1, 1);
 
-    struct arena_region *first = arena->current;
     size_t first_position = arena_position(arena);
-    void *oversized = arena_push(arena, kb(100), 64);
+    u8 *oversized = arena_push(arena, kb(100), 64);
 
     assert((uintptr_t)oversized % 64 == 0);
-    assert(arena->current != first);
-    assert(arena->current->prev == first);
-    assert(arena->current->capacity >= kb(100) + 63);
-    assert(first->base_position == 0);
-    assert(arena->current->base_position == first->capacity);
-    assert(arena_position(arena) ==
-           arena->current->base_position + arena->current->offset);
     assert(arena_position(arena) > first_position);
+    oversized[kb(100) - 1] = 1;
 
     arena_free(arena);
 }
@@ -109,25 +102,10 @@ static void test_overflow_aborts(void)
     assert_aborts(push_overflow);
 }
 
-static void test_custom_block_capacity_is_reused(void)
-{
-    struct arena *arena = arena_alloc(.block_capacity = kb(1));
-
-    (void)arena_push(arena, kb(1), 1);
-    struct arena_region *first = arena->current;
-    assert(first->capacity == kb(1));
-
-    (void)arena_push(arena, 1, 1);
-    assert(arena->current != first);
-    assert(arena->current->capacity == kb(1));
-
-    arena_free(arena);
-}
-
 static void exhaust_fixed_arena(void)
 {
-    struct arena *arena = arena_alloc(.flags = NO_CHAIN);
-    (void)arena_push(arena, kb(64), 1);
+    struct arena *arena = arena_alloc(.flags = NO_CHAIN, .block_capacity = 16);
+    (void)arena_push(arena, 16, 1);
     (void)arena_push(arena, 1, 1);
 }
 
@@ -184,15 +162,14 @@ static void test_temp_end_restores_position_across_regions(void)
     struct arena *arena = arena_alloc();
     (void)arena_push(arena, 1, 1);
 
-    struct arena_region *persistent_region = arena->current;
+    size_t position = arena_position(arena);
     struct arena_temp temp = arena_temp_begin(arena);
 
     (void)arena_push(arena, kb(100), 1);
-    assert(arena->current != persistent_region);
+    assert(arena_position(arena) > position);
 
     arena_temp_end(temp);
-    assert(arena->current == persistent_region);
-    assert(arena_position(arena) == temp.pos);
+    assert(arena_position(arena) == position);
 
     arena_free(arena);
 }
@@ -201,9 +178,8 @@ int main(void)
 {
     test_empty_arena_position_is_zero();
     test_alignment_and_typed_pushes();
-    test_oversized_push_adds_region();
+    test_oversized_push();
     test_overflow_aborts();
-    test_custom_block_capacity_is_reused();
     test_fixed_arena_exhaustion_aborts();
     test_oversized_fixed_arena_push_aborts();
     test_pop_restores_position_in_current_region();

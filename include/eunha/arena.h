@@ -27,7 +27,9 @@
 
 #include <stdalign.h>
 #include <stddef.h>
-#include <eunha/core.h>
+
+/** Opaque chained linear allocator. */
+struct arena;
 
 enum arena_flags {
     NO_CHAIN = 1 << 0,
@@ -39,34 +41,6 @@ enum arena_flags {
  * @block_capacity: Preferred region size; zero selects the 64 KiB default.
  */
 struct arena_params {
-    enum arena_flags flags;
-    size_t block_capacity;
-};
-
-/**
- * struct arena_region - One backing-memory region in an arena chain.
- * @prev: Previous region in the chain, or NULL for the first region.
- * @base_position: Logical arena position at the start of this region.
- * @capacity: Number of bytes available in data.
- * @offset: Number of bytes consumed, including alignment gaps.
- * @data: Flexible byte buffer owned by this region.
- */
-struct arena_region {
-    struct arena_region *prev;
-    size_t base_position;
-    size_t capacity;
-    size_t offset;
-    u8 data[];
-};
-
-/**
- * struct arena - Chained linear allocator state.
- * @current: Region used for new pushes, or NULL before the first push.
- * @flags: Behavior flags selected when the arena was created.
- * @block_capacity: Preferred capacity for newly allocated regions.
- */
-struct arena {
-    struct arena_region *current;
     enum arena_flags flags;
     size_t block_capacity;
 };

@@ -44,7 +44,7 @@ struct deque_params {
 };
 
 /**
- * struct deque - Generic double-ended queue.
+ * struct deque - Generic arena-backed double-ended queue.
  * @arena: Borrowed arena used to allocate backing buffers.
  * @data: Current circular backing buffer, or NULL before the first push.
  * @len: Number of items currently stored.
