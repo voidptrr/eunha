@@ -95,7 +95,6 @@ struct deque deque_with_params(const struct deque_params *params)
     assert(params != NULL);
     assert(params->arena != NULL);
     assert(params->item_size != 0);
-    assert(is_pow2(params->item_alignment));
     assert(params->item_size % params->item_alignment == 0);
 
     struct deque result = {

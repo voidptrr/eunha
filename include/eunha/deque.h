@@ -64,7 +64,7 @@ struct deque {
 };
 
 /** Number of items allocated when a lazy deque first grows. */
-#define DEQUE_DEFAULT_CAPACITY ((size_t)8)
+#define DEQUE_DEFAULT_CAPACITY 8
 
 /** Creates a deque for type from optional designated deque_params fields. */
 #define deque(type, ...)                                                       \
