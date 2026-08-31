@@ -63,6 +63,9 @@ struct deque {
     size_t item_alignment;
 };
 
+/** Number of items allocated when a lazy deque first grows. */
+#define DEQUE_DEFAULT_CAPACITY ((size_t)8)
+
 /** Creates a deque for type from optional designated deque_params fields. */
 #define deque(type, ...)                                                       \
     deque_with_params(&(struct deque_params){ .item_size = sizeof(type),       \

@@ -43,8 +43,128 @@ static void test_initial_capacity(void)
     arena_free(arena);
 }
 
+static void test_push(void)
+{
+    struct arena *arena = arena_alloc();
+    struct deque values = deque(u64, .arena = arena, .initial_capacity = 2);
+    void *initial_data = values.data;
+    u64 item = 10;
+
+    deque_push(&values, &item);
+
+    assert(values.data == initial_data);
+    assert(deque_len(&values) == 1);
+    assert(*(u64 *)values.data == item);
+
+    arena_free(arena);
+}
+
+static void test_resize(void)
+{
+    struct arena *arena = arena_alloc();
+    struct deque values = deque(u64, .arena = arena, .initial_capacity = 2);
+    u64 items[] = { 10, 20, 30 };
+
+    deque_push(&values, &items[0]);
+    deque_push(&values, &items[1]);
+
+    void *full_data = values.data;
+    deque_push(&values, &items[2]);
+
+    u64 *data = values.data;
+    assert(values.data != full_data);
+    assert(values.len == 3);
+    assert(values.capacity == 4);
+    assert(data[0] == items[0]);
+    assert(data[1] == items[1]);
+    assert(data[2] == items[2]);
+
+    arena_free(arena);
+}
+
+static void test_pushfront(void)
+{
+    struct arena *arena = arena_alloc();
+    struct deque values = deque(u64, .arena = arena, .initial_capacity = 2);
+    u64 items[] = { 10, 20, 30 };
+
+    deque_push(&values, &items[1]);
+    deque_push(&values, &items[2]);
+    deque_pushfront(&values, &items[0]);
+
+    assert(*(u64 *)deque_popfront(&values) == items[0]);
+    assert(*(u64 *)deque_popfront(&values) == items[1]);
+    assert(*(u64 *)deque_popfront(&values) == items[2]);
+
+    arena_free(arena);
+}
+
+static void test_popback(void)
+{
+    struct arena *arena = arena_alloc();
+    struct deque values = deque(u64, .arena = arena);
+    u64 items[] = { 10, 20 };
+
+    deque_push(&values, &items[1]);
+    deque_pushfront(&values, &items[0]);
+
+    assert(*(u64 *)deque_popback(&values) == items[1]);
+    assert(*(u64 *)deque_popback(&values) == items[0]);
+    assert(deque_popback(&values) == NULL);
+    assert(deque_len(&values) == 0);
+
+    arena_free(arena);
+}
+
+static void test_popfront(void)
+{
+    struct arena *arena = arena_alloc();
+    struct deque values = deque(u64, .arena = arena);
+    u64 items[] = { 10, 20 };
+
+    deque_push(&values, &items[0]);
+    deque_push(&values, &items[1]);
+
+    assert(*(u64 *)deque_popfront(&values) == items[0]);
+    assert(*(u64 *)deque_popfront(&values) == items[1]);
+    assert(deque_popfront(&values) == NULL);
+    assert(deque_len(&values) == 0);
+
+    arena_free(arena);
+}
+
+static void test_resize_wrapped_buffer(void)
+{
+    struct arena *arena = arena_alloc();
+    struct deque values = deque(u64, .arena = arena, .initial_capacity = 3);
+    u64 items[] = { 10, 20, 30, 40, 50, 60 };
+
+    deque_push(&values, &items[0]);
+    deque_push(&values, &items[1]);
+    deque_push(&values, &items[2]);
+    (void)deque_popfront(&values);
+    (void)deque_popfront(&values);
+    deque_push(&values, &items[3]);
+    deque_push(&values, &items[4]);
+    deque_push(&values, &items[5]);
+
+    assert(values.capacity == 6);
+    assert(*(u64 *)deque_popfront(&values) == items[2]);
+    assert(*(u64 *)deque_popfront(&values) == items[3]);
+    assert(*(u64 *)deque_popfront(&values) == items[4]);
+    assert(*(u64 *)deque_popfront(&values) == items[5]);
+
+    arena_free(arena);
+}
+
 int main(void)
 {
     test_initial_capacity();
+    test_push();
+    test_resize();
+    test_pushfront();
+    test_popback();
+    test_popfront();
+    test_resize_wrapped_buffer();
     return 0;
 }
