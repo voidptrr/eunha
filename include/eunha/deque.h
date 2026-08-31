@@ -25,6 +25,7 @@
 #ifndef EUNHA_DEQUE_H
 #define EUNHA_DEQUE_H
 
+#include <stdalign.h>
 #include <stddef.h>
 #include <eunha/arena.h>
 
@@ -62,8 +63,11 @@ struct deque {
     size_t item_alignment;
 };
 
-/** Creates a deque from designated deque_params fields. */
-#define deque(...) deque_with_params(&(struct deque_params){ __VA_ARGS__ })
+/** Creates a deque for type from optional designated deque_params fields. */
+#define deque(type, ...)                                                       \
+    deque_with_params(&(struct deque_params){ .item_size = sizeof(type),       \
+                                              .item_alignment = alignof(type), \
+                                              __VA_ARGS__ })
 
 /**
  * Creates an empty deque using params. arena must be non-NULL, item_size must

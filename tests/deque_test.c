@@ -33,9 +33,7 @@
 static void test_initial_capacity(void)
 {
     struct arena *arena = arena_alloc();
-    struct deque values = deque(.arena = arena, .item_size = sizeof(u64),
-                                .item_alignment = alignof(u64),
-                                .initial_capacity = 8);
+    struct deque values = deque(u64, .arena = arena, .initial_capacity = 8);
 
     assert(values.data != NULL);
     assert((uintptr_t)values.data % alignof(u64) == 0);
