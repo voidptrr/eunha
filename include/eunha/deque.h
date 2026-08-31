@@ -28,22 +28,14 @@
 #include <stddef.h>
 #include <eunha/arena.h>
 
-/** Selects how a deque allocates and releases its backing buffers. */
-enum deque_mode {
-    DEQUE_MODE_ARENA,
-    DEQUE_MODE_HEAP,
-};
-
 /**
  * struct deque_params - Parameters used to create a deque.
- * @mode: Backing-buffer allocation mode.
- * @arena: Borrowed arena required by DEQUE_MODE_ARENA; ignored in heap mode.
+ * @arena: Borrowed arena used to allocate backing buffers.
  * @item_size: Size of one stored item in bytes.
  * @item_alignment: Required alignment of each stored item.
  * @initial_capacity: Number of items to reserve initially; zero grows lazily.
  */
 struct deque_params {
-    enum deque_mode mode;
     struct arena *arena;
     size_t item_size;
     size_t item_alignment;
@@ -52,8 +44,7 @@ struct deque_params {
 
 /**
  * struct deque - Generic double-ended queue.
- * @mode: Backing-buffer allocation mode selected at creation.
- * @arena: Borrowed arena used in arena mode, or NULL in heap mode.
+ * @arena: Borrowed arena used to allocate backing buffers.
  * @data: Current circular backing buffer, or NULL before the first push.
  * @len: Number of items currently stored.
  * @capacity: Number of items that fit in the current backing buffer.
@@ -62,7 +53,6 @@ struct deque_params {
  * @item_alignment: Required alignment of each stored item.
  */
 struct deque {
-    enum deque_mode mode;
     struct arena *arena;
     void *data;
     size_t len;
@@ -76,8 +66,9 @@ struct deque {
 #define deque(...) deque_with_params(&(struct deque_params){ __VA_ARGS__ })
 
 /**
- * Creates an empty deque using params. item_size must be nonzero and a multiple
- * of item_alignment. item_alignment must be a nonzero power of two.
+ * Creates an empty deque using params. arena must be non-NULL, item_size must
+ * be nonzero and a multiple of item_alignment, and item_alignment must be a
+ * nonzero power of two.
  */
 struct deque deque_with_params(const struct deque_params *params);
 
@@ -101,11 +92,5 @@ void *deque_popfront(struct deque *deque);
 
 /** Returns the number of items currently stored in deque. */
 size_t deque_len(const struct deque *deque);
-
-/**
- * Releases heap-backed storage and clears deque. Arena-backed storage remains
- * owned by its arena and is released when that arena is rewound or freed.
- */
-void deque_free(struct deque *deque);
 
 #endif

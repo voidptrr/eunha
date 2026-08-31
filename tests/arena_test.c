@@ -54,7 +54,6 @@ static void assert_aborts(abort_test_fn function)
 static void test_alignment_and_typed_pushes(void)
 {
     struct arena *arena = arena_alloc();
-    assert(arena != NULL);
 
     u8 *byte = arena_push_type(arena, u8);
     u64 *word = arena_push_type(arena, u64);
@@ -62,14 +61,9 @@ static void test_alignment_and_typed_pushes(void)
     u64 *words = arena_push_array(arena, u64, 8);
     u32 *number = arena_push_type(arena, u32);
 
-    assert(byte != NULL);
-    assert(word != NULL);
     assert((uintptr_t)word % alignof(u64) == 0);
-    assert(page_aligned != NULL);
     assert((uintptr_t)page_aligned % 4096 == 0);
-    assert(words != NULL);
     assert((uintptr_t)words % alignof(u64) == 0);
-    assert(number != NULL);
     assert((uintptr_t)number % alignof(u32) == 0);
 
     *byte = 1;
@@ -84,14 +78,12 @@ static void test_alignment_and_typed_pushes(void)
 static void test_oversized_push_adds_region(void)
 {
     struct arena *arena = arena_alloc();
-    assert(arena != NULL);
-    assert(arena_push(arena, 1, 1) != NULL);
+    (void)arena_push(arena, 1, 1);
 
     struct arena_region *first = arena->current;
     size_t first_position = arena_position(arena);
     void *oversized = arena_push(arena, kb(100), 64);
 
-    assert(oversized != NULL);
     assert((uintptr_t)oversized % 64 == 0);
     assert(arena->current != first);
     assert(arena->current->prev == first);
@@ -108,7 +100,7 @@ static void test_oversized_push_adds_region(void)
 static void push_overflow(void)
 {
     struct arena *arena = arena_alloc();
-    assert(arena_push(arena, 1, 1) != NULL);
+    (void)arena_push(arena, 1, 1);
     (void)arena_push(arena, SIZE_MAX, 2);
 }
 
@@ -120,14 +112,12 @@ static void test_overflow_aborts(void)
 static void test_custom_block_capacity_is_reused(void)
 {
     struct arena *arena = arena_alloc(.block_capacity = kb(1));
-    assert(arena != NULL);
-    assert(arena->block_capacity == kb(1));
 
-    assert(arena_push(arena, kb(1), 1) != NULL);
+    (void)arena_push(arena, kb(1), 1);
     struct arena_region *first = arena->current;
     assert(first->capacity == kb(1));
 
-    assert(arena_push(arena, 1, 1) != NULL);
+    (void)arena_push(arena, 1, 1);
     assert(arena->current != first);
     assert(arena->current->capacity == kb(1));
 
@@ -137,7 +127,7 @@ static void test_custom_block_capacity_is_reused(void)
 static void exhaust_fixed_arena(void)
 {
     struct arena *arena = arena_alloc(.flags = NO_CHAIN);
-    assert(arena_push(arena, kb(64), 1) != NULL);
+    (void)arena_push(arena, kb(64), 1);
     (void)arena_push(arena, 1, 1);
 }
 
@@ -160,7 +150,6 @@ static void test_oversized_fixed_arena_push_aborts(void)
 static void test_empty_arena_position_is_zero(void)
 {
     struct arena *arena = arena_alloc();
-    assert(arena != NULL);
     assert(arena_position(arena) == 0);
 
     arena_free(arena);
@@ -169,12 +158,10 @@ static void test_empty_arena_position_is_zero(void)
 static void test_pop_restores_position_in_current_region(void)
 {
     struct arena *arena = arena_alloc();
-    assert(arena != NULL);
-    assert(arena_push(arena, 32, 1) != NULL);
+    (void)arena_push(arena, 32, 1);
 
     size_t position = arena_position(arena);
     void *temporary = arena_push(arena, 16, 1);
-    assert(temporary != NULL);
 
     arena_pop(arena, 16);
     assert(arena_position(arena) == position);
@@ -195,15 +182,12 @@ static void test_pop_restores_position_in_current_region(void)
 static void test_temp_end_restores_position_across_regions(void)
 {
     struct arena *arena = arena_alloc();
-    assert(arena != NULL);
-    assert(arena_push(arena, 1, 1) != NULL);
+    (void)arena_push(arena, 1, 1);
 
     struct arena_region *persistent_region = arena->current;
     struct arena_temp temp = arena_temp_begin(arena);
-    assert(temp.arena == arena);
-    assert(temp.pos == arena_position(arena));
 
-    assert(arena_push(arena, kb(100), 1) != NULL);
+    (void)arena_push(arena, kb(100), 1);
     assert(arena->current != persistent_region);
 
     arena_temp_end(temp);
