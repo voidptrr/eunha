@@ -22,21 +22,21 @@
  * SOFTWARE.
  */
 
-#ifndef EUNHA_DEQUE_H
-#define EUNHA_DEQUE_H
+#ifndef EUNHA_VECTOR_H
+#define EUNHA_VECTOR_H
 
 #include <stdalign.h>
 #include <stddef.h>
 #include <eunha/arena.h>
 
 /**
- * struct deque_params - Parameters used to create a deque.
+ * struct vector_params - Parameters used to create a vector.
  * @arena: Borrowed arena used to allocate backing buffers.
  * @item_size: Size of one stored item in bytes.
  * @item_alignment: Required alignment of each stored item.
  * @initial_capacity: Number of items to reserve; zero selects the default.
  */
-struct deque_params {
+struct vector_params {
     struct arena *arena;
     size_t item_size;
     size_t item_alignment;
@@ -44,61 +44,63 @@ struct deque_params {
 };
 
 /**
- * struct deque - Generic arena-backed double-ended queue.
+ * struct vector - Generic arena-backed contiguous array.
  * @arena: Borrowed arena used to allocate backing buffers.
- * @data: Current circular backing buffer.
+ * @data: Current backing buffer.
  * @len: Number of items currently stored.
  * @capacity: Number of items that fit in the current backing buffer.
- * @head: Index of the first item in the circular backing buffer.
  * @item_size: Size of one stored item in bytes.
  * @item_alignment: Required alignment of each stored item.
  */
-struct deque {
+struct vector {
     struct arena *arena;
     void *data;
     size_t len;
     size_t capacity;
-    size_t head;
     size_t item_size;
     size_t item_alignment;
 };
 
-/** Default number of items reserved by a deque. */
-#define DEQUE_DEFAULT_CAPACITY 8
+/** Default number of items reserved by a vector. */
+#define VECTOR_DEFAULT_CAPACITY 8
 
-/** Creates a deque for type from optional designated deque_params fields. */
-#define deque(type, ...)                                                       \
-    deque_with_params(&(struct deque_params){ .item_size = sizeof(type),       \
-                                              .item_alignment = alignof(type), \
-                                              __VA_ARGS__ })
-
-/**
- * Creates an empty deque using params. A zero initial_capacity selects
- * DEQUE_DEFAULT_CAPACITY. arena must be non-NULL, item_size must be nonzero and
- * a multiple of item_alignment, and item_alignment must be a nonzero power of
- * two.
- */
-struct deque deque_with_params(const struct deque_params *params);
-
-/** Copies item to the back of deque, growing its backing storage when needed. */
-void deque_push(struct deque *deque, const void *item);
-
-/** Copies item to the front of deque, growing its backing storage when needed. */
-void deque_pushfront(struct deque *deque, const void *item);
+/** Creates a vector for type from optional designated vector_params fields. */
+#define vector(type, ...)                                         \
+    vector_with_params(                                           \
+        &(struct vector_params){ .item_size = sizeof(type),       \
+                                 .item_alignment = alignof(type), \
+                                 __VA_ARGS__ })
 
 /**
- * Removes and returns the item at the back of deque, or NULL when the deque is
- * empty. The returned pointer may be overwritten by a later deque mutation.
+ * Creates an empty vector using params. A zero initial_capacity selects
+ * VECTOR_DEFAULT_CAPACITY. arena must be non-NULL, item_size must be nonzero
+ * and a multiple of item_alignment, and item_alignment must be a nonzero power
+ * of two.
  */
-void *deque_popback(struct deque *deque);
+struct vector vector_with_params(const struct vector_params *params);
+
+/** Copies item to the back of vector, growing its backing storage when needed. */
+void vector_push(struct vector *vector, const void *item);
 
 /**
- * Removes and returns the item at the front of deque, or NULL when the deque is
- * empty. The returned pointer may be overwritten by a later deque mutation.
+ * Removes and returns the final item, or NULL when vector is empty. The
+ * returned pointer may be overwritten by a later vector mutation.
  */
-void *deque_popfront(struct deque *deque);
+void *vector_pop(struct vector *vector);
 
-/** Returns the number of items currently stored in deque. */
-size_t deque_len(const struct deque *deque);
+/**
+ * Returns the item at index, or NULL when index is out of bounds. The returned
+ * pointer must not be retained across an operation that may grow vector.
+ */
+void *vector_at(struct vector *vector, size_t index);
+
+/** Ensures vector can hold at least capacity items without growing. */
+void vector_reserve(struct vector *vector, size_t capacity);
+
+/** Removes all items without releasing the current backing buffer. */
+void vector_clear(struct vector *vector);
+
+/** Returns the number of items currently stored in vector. */
+size_t vector_len(const struct vector *vector);
 
 #endif

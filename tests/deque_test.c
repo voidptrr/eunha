@@ -31,9 +31,10 @@
 static void test_push(void)
 {
     struct arena *arena = arena_alloc();
-    struct deque values = deque(u64, .arena = arena, .initial_capacity = 2);
+    struct deque values = deque(u64, .arena = arena);
     u64 item = 10;
 
+    assert(values.capacity == DEQUE_DEFAULT_CAPACITY);
     deque_push(&values, &item);
 
     assert(deque_len(&values) == 1);
