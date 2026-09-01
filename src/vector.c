@@ -51,6 +51,11 @@ static size_t vector_size(size_t capacity, size_t item_size)
     return size;
 }
 
+static u8 *vector_item(struct vector *vector, size_t index)
+{
+    return (u8 *)vector->data + (index * vector->item_size);
+}
+
 static void vector_resize(struct vector *vector, size_t capacity)
 {
     size_t size = vector_size(capacity, vector->item_size);
@@ -103,7 +108,7 @@ void vector_push(struct vector *vector, const void *item)
         vector_grow(vector);
     }
 
-    u8 *dst = (u8 *)vector->data + (vector->len * vector->item_size);
+    u8 *dst = vector_item(vector, vector->len);
     memmove(dst, item, vector->item_size);
     vector->len += 1;
 }
@@ -117,7 +122,7 @@ void *vector_pop(struct vector *vector)
     }
 
     vector->len -= 1;
-    return (u8 *)vector->data + (vector->len * vector->item_size);
+    return vector_item(vector, vector->len);
 }
 
 void *vector_at(struct vector *vector, size_t index)
@@ -128,7 +133,7 @@ void *vector_at(struct vector *vector, size_t index)
         return NULL;
     }
 
-    return (u8 *)vector->data + (index * vector->item_size);
+    return vector_item(vector, index);
 }
 
 void vector_reserve(struct vector *vector, size_t capacity)

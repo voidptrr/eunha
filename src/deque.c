@@ -52,10 +52,12 @@ static size_t deque_size(size_t capacity, size_t item_size)
     return size;
 }
 
-static size_t deque_index(const struct deque *deque, size_t index)
+static u8 *deque_item(struct deque *deque, size_t index)
 {
     size_t remaining = deque->capacity - deque->head;
-    return index < remaining ? deque->head + index : index - remaining;
+    size_t position = index < remaining ? deque->head + index :
+                                          index - remaining;
+    return (u8 *)deque->data + (position * deque->item_size);
 }
 
 static void deque_grow(struct deque *deque)
@@ -75,8 +77,7 @@ static void deque_grow(struct deque *deque)
         }
 
         size_t first_size = first_len * deque->item_size;
-        memcpy(data, (u8 *)deque->data + (deque->head * deque->item_size),
-               first_size);
+        memcpy(data, deque_item(deque, 0), first_size);
 
         size_t second_len = deque->len - first_len;
         memcpy(data + first_size, deque->data, second_len * deque->item_size);
@@ -118,8 +119,7 @@ void deque_push(struct deque *deque, const void *item)
         deque_grow(deque);
     }
 
-    size_t tail = deque_index(deque, deque->len);
-    u8 *dst = (u8 *)deque->data + (tail * deque->item_size);
+    u8 *dst = deque_item(deque, deque->len);
     memmove(dst, item, deque->item_size);
     deque->len += 1;
 }
@@ -134,7 +134,7 @@ void deque_pushfront(struct deque *deque, const void *item)
     }
 
     deque->head = deque->head == 0 ? deque->capacity - 1 : deque->head - 1;
-    u8 *dst = (u8 *)deque->data + (deque->head * deque->item_size);
+    u8 *dst = deque_item(deque, 0);
     memmove(dst, item, deque->item_size);
     deque->len += 1;
 }
@@ -147,8 +147,7 @@ void *deque_popback(struct deque *deque)
         return NULL;
     }
 
-    size_t tail = deque_index(deque, deque->len - 1);
-    void *item = (u8 *)deque->data + (tail * deque->item_size);
+    void *item = deque_item(deque, deque->len - 1);
     deque->len -= 1;
     if (deque->len == 0) {
         deque->head = 0;
@@ -165,7 +164,7 @@ void *deque_popfront(struct deque *deque)
         return NULL;
     }
 
-    void *item = (u8 *)deque->data + (deque->head * deque->item_size);
+    void *item = deque_item(deque, 0);
     deque->head = deque->head == deque->capacity - 1 ? 0 : deque->head + 1;
     deque->len -= 1;
     if (deque->len == 0) {
